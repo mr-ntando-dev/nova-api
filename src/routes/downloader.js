@@ -1,57 +1,136 @@
 'use strict';
 const router = require('express').Router();
 const axios = require('axios');
-const ytdl = require('@distube/ytdl-core');
 const ytSearch = require('yt-search');
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 const ok  = (res, data) => res.json({ success: true, ...data });
 const err = (res, msg, code = 400) => res.status(code).json({ success: false, error: msg });
 
-// ─── YouTube Video Info + Download Link ───────────────────────────────────────
+// ─── YouTube Video Info (using Invidious public instances) ────────────────────
 router.get('/youtube', async (req, res) => {
-  const { url, quality = '720p' } = req.query;
+  const { url } = req.query;
   if (!url) return err(res, 'Missing ?url=');
   try {
-    if (!ytdl.validateURL(url)) return err(res, 'Invalid YouTube URL');
-    const info = await ytdl.getInfo(url);
-    const details = info.videoDetails;
-    const formats = ytdl.filterFormats(info.formats, 'videoandaudio');
-    const chosen = formats.find(f => f.qualityLabel === quality) || formats[0];
+    // Extract video ID
+    const match = url.match(/(?:v=|youtu\.be\/|\/shorts\/|\/embed\/)([a-zA-Z0-9_-]{11})/);
+    if (!match) return err(res, 'Invalid YouTube URL');
+    const videoId = match[1];
+
+    // Try cobalt.tools API (free, reliable)
+    try {
+      const r = await axios.post('https://api.cobalt.tools/api/json', {
+        url: `https://www.youtube.com/watch?v=${videoId}`,
+        vCodec: 'h264',
+        vQuality: '720',
+        aFormat: 'mp3'
+      }, {
+        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+        timeout: 15000
+      });
+      if (r.data?.url) {
+        // Get video info via oembed
+        const info = await axios.get(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`, { timeout: 10000 }).catch(() => null);
+        return ok(res, {
+          title: info?.data?.title || 'Unknown',
+          author: info?.data?.author_name || 'Unknown',
+          thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+          video_id: videoId,
+          download_url: r.data.url,
+          source: 'cobalt'
+        });
+      }
+    } catch(e) { /* fallthrough */ }
+
+    // Fallback: Invidious API
+    const instances = ['https://inv.nadeko.net', 'https://invidious.privacyredirect.com', 'https://vid.puffyan.us'];
+    for (const instance of instances) {
+      try {
+        const r = await axios.get(`${instance}/api/v1/videos/${videoId}`, { timeout: 10000 });
+        const d = r.data;
+        const formats = (d.formatStreams || []).concat(d.adaptiveFormats || []);
+        const videoFormats = formats.filter(f => f.type?.includes('video') && f.url);
+        const audioFormats = formats.filter(f => f.type?.includes('audio') && f.url);
+        return ok(res, {
+          title: d.title,
+          author: d.author,
+          duration: d.lengthSeconds + 's',
+          views: d.viewCount,
+          thumbnail: d.videoThumbnails?.[0]?.url || `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+          video_id: videoId,
+          download_url: videoFormats[0]?.url || null,
+          formats: videoFormats.slice(0, 5).map(f => ({ quality: f.qualityLabel || f.quality, type: f.type, url: f.url })),
+          audio_url: audioFormats[0]?.url || null,
+          source: 'invidious'
+        });
+      } catch(e) { continue; }
+    }
+
+    // Last fallback: just return metadata via oembed
+    const info = await axios.get(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`, { timeout: 10000 });
     ok(res, {
-      title: details.title,
-      author: details.author.name,
-      duration: details.lengthSeconds + 's',
-      views: details.viewCount,
-      thumbnail: details.thumbnails.at(-1)?.url,
-      download_url: chosen?.url || null,
-      quality: chosen?.qualityLabel || null,
-      formats: formats.map(f => ({ quality: f.qualityLabel, mimeType: f.mimeType, url: f.url }))
+      title: info.data.title,
+      author: info.data.author_name,
+      thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+      video_id: videoId,
+      download_url: null,
+      note: 'Direct download unavailable, use video ID with a client-side player',
+      source: 'oembed'
     });
   } catch (e) {
     err(res, e.message, 500);
   }
 });
 
-// ─── YouTube Audio Only (MP3 stream link) ────────────────────────────────────
+// ─── YouTube Audio ────────────────────────────────────────────────────────────
 router.get('/youtube/audio', async (req, res) => {
   const { url } = req.query;
   if (!url) return err(res, 'Missing ?url=');
   try {
-    if (!ytdl.validateURL(url)) return err(res, 'Invalid YouTube URL');
-    const info = await ytdl.getInfo(url);
-    const details = info.videoDetails;
-    const formats = ytdl.filterFormats(info.formats, 'audioonly');
-    const best = formats.sort((a, b) => (b.audioBitrate || 0) - (a.audioBitrate || 0))[0];
-    ok(res, {
-      title: details.title,
-      author: details.author.name,
-      duration: details.lengthSeconds + 's',
-      thumbnail: details.thumbnails.at(-1)?.url,
-      audio_url: best?.url || null,
-      bitrate: best?.audioBitrate ? best.audioBitrate + 'kbps' : null,
-      mimeType: best?.mimeType
-    });
+    const match = url.match(/(?:v=|youtu\.be\/|\/shorts\/|\/embed\/)([a-zA-Z0-9_-]{11})/);
+    if (!match) return err(res, 'Invalid YouTube URL');
+    const videoId = match[1];
+
+    // Try cobalt for audio
+    try {
+      const r = await axios.post('https://api.cobalt.tools/api/json', {
+        url: `https://www.youtube.com/watch?v=${videoId}`,
+        isAudioOnly: true,
+        aFormat: 'mp3'
+      }, {
+        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+        timeout: 15000
+      });
+      if (r.data?.url) {
+        const info = await axios.get(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`, { timeout: 10000 }).catch(() => null);
+        return ok(res, {
+          title: info?.data?.title || 'Unknown',
+          author: info?.data?.author_name || 'Unknown',
+          thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+          audio_url: r.data.url,
+          source: 'cobalt'
+        });
+      }
+    } catch(e) { /* fallthrough */ }
+
+    // Invidious fallback
+    const instances = ['https://inv.nadeko.net', 'https://invidious.privacyredirect.com', 'https://vid.puffyan.us'];
+    for (const instance of instances) {
+      try {
+        const r = await axios.get(`${instance}/api/v1/videos/${videoId}`, { timeout: 10000 });
+        const audioFormats = (r.data.adaptiveFormats || []).filter(f => f.type?.includes('audio') && f.url);
+        if (audioFormats.length) {
+          return ok(res, {
+            title: r.data.title,
+            author: r.data.author,
+            thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+            audio_url: audioFormats[0].url,
+            bitrate: audioFormats[0].bitrate,
+            source: 'invidious'
+          });
+        }
+      } catch(e) { continue; }
+    }
+    err(res, 'Could not extract audio. YouTube may be blocking server IPs.', 503);
   } catch (e) {
     err(res, e.message, 500);
   }
@@ -66,6 +145,7 @@ router.get('/youtube/search', async (req, res) => {
     const videos = r.videos.slice(0, parseInt(limit)).map(v => ({
       title: v.title,
       url: v.url,
+      video_id: v.videoId,
       duration: v.duration.timestamp,
       views: v.views,
       author: v.author.name,
@@ -83,7 +163,6 @@ router.get('/tiktok', async (req, res) => {
   const { url } = req.query;
   if (!url) return err(res, 'Missing ?url=');
   try {
-    // Using tikwm.com API — free, no key needed
     const r = await axios.get(`https://www.tikwm.com/api/?url=${encodeURIComponent(url)}&hd=1`, { timeout: 15000 });
     const d = r.data?.data;
     if (!d) return err(res, 'Could not fetch TikTok data');
@@ -108,24 +187,19 @@ router.get('/instagram', async (req, res) => {
   const { url } = req.query;
   if (!url) return err(res, 'Missing ?url=');
   try {
-    const r = await axios.get(`https://www.saveinsta.app/api/ajaxSearch`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    // Try multiple free services
+    const r = await axios.post('https://saveig.app/api/ajaxSearch', `q=${encodeURIComponent(url)}&t=media&lang=en`, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'Mozilla/5.0' },
       timeout: 15000
     });
-    // Fallback to a reliable scraper approach
-    const apiUrl = `https://api.instaloader.workers.dev/?url=${encodeURIComponent(url)}`;
-    const resp = await axios.get(apiUrl, { timeout: 15000 });
-    if (resp.data && resp.data.url) {
-      ok(res, { media_url: resp.data.url, type: resp.data.type || 'unknown' });
-    } else {
-      // Second fallback
-      const r2 = await axios.post('https://saveig.app/api/ajaxSearch', `q=${encodeURIComponent(url)}&t=media&lang=en`, {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        timeout: 15000
-      });
-      ok(res, { raw: r2.data });
+    if (r.data?.data) {
+      const cheerio = require('cheerio');
+      const $ = cheerio.load(r.data.data);
+      const links = [];
+      $('a[href]').each((i, el) => { const h = $(el).attr('href'); if (h && h.startsWith('http')) links.push(h); });
+      return ok(res, { url, media: links });
     }
+    err(res, 'Could not extract Instagram media', 503);
   } catch (e) {
     err(res, 'Instagram download failed: ' + e.message, 500);
   }
@@ -136,17 +210,19 @@ router.get('/facebook', async (req, res) => {
   const { url } = req.query;
   if (!url) return err(res, 'Missing ?url=');
   try {
-    const r = await axios.get(`https://facebook-reel-and-video-downloader.p.rapidapi.com/app/main.php?url=${encodeURIComponent(url)}`, {
-      headers: {
-        'X-RapidAPI-Host': 'facebook-reel-and-video-downloader.p.rapidapi.com',
-        'X-RapidAPI-Key': 'SIGN-UP-FOR-KEY'
-      },
+    const r = await axios.get(`https://www.getfvid.com/downloader`, {
+      params: { url },
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
       timeout: 15000
-    }).catch(async () => {
-      // Free fallback
-      return await axios.get(`https://fb-downloader.com/api?url=${encodeURIComponent(url)}`, { timeout: 15000 });
     });
-    ok(res, { data: r.data });
+    const cheerio = require('cheerio');
+    const $ = cheerio.load(r.data);
+    const links = [];
+    $('a.btn-download').each((i, el) => {
+      links.push({ quality: $(el).text().trim(), url: $(el).attr('href') });
+    });
+    if (links.length) return ok(res, { url, downloads: links });
+    err(res, 'Could not extract Facebook video', 503);
   } catch (e) {
     err(res, e.message, 500);
   }
@@ -161,7 +237,6 @@ router.get('/twitter', async (req, res) => {
       headers: { 'User-Agent': 'Mozilla/5.0' },
       timeout: 15000
     });
-    // Parse HTML for download links
     const cheerio = require('cheerio');
     const $ = cheerio.load(r.data);
     const links = [];
@@ -169,11 +244,8 @@ router.get('/twitter', async (req, res) => {
       links.push({ quality: $(el).text().trim(), url: $(el).attr('href') });
     });
     const title = $('p.leading-tight').first().text().trim();
-    if (links.length) {
-      ok(res, { title, links });
-    } else {
-      err(res, 'No downloadable video found in that tweet');
-    }
+    if (links.length) return ok(res, { title, links });
+    err(res, 'No downloadable video found', 404);
   } catch (e) {
     err(res, e.message, 500);
   }
@@ -192,8 +264,8 @@ router.get('/pinterest', async (req, res) => {
     const $ = cheerio.load(r.data);
     const videoUrl = $('video source').attr('src') || $('meta[property="og:video"]').attr('content');
     const imageUrl = $('meta[property="og:image"]').attr('content');
-    const title   = $('meta[property="og:title"]').attr('content');
-    ok(res, { title, video_url: videoUrl || null, image_url: imageUrl || null });
+    const title = $('meta[property="og:title"]').attr('content');
+    ok(res, { title, video: videoUrl || null, image: imageUrl || null });
   } catch (e) {
     err(res, e.message, 500);
   }
@@ -204,38 +276,37 @@ router.get('/soundcloud', async (req, res) => {
   const { url } = req.query;
   if (!url) return err(res, 'Missing ?url=');
   try {
-    const r = await axios.get(`https://soundcloud.com/oembed?url=${encodeURIComponent(url)}&format=json`, { timeout: 10000 });
-    ok(res, {
-      title: r.data.title,
-      author: r.data.author_name,
-      thumbnail: r.data.thumbnail_url,
-      html: r.data.html,
-      note: 'Direct audio download requires SoundCloud API key or a service like scdl'
+    const r = await axios.get(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+      timeout: 15000
     });
+    const cheerio = require('cheerio');
+    const $ = cheerio.load(r.data);
+    const title = $('meta[property="og:title"]').attr('content');
+    const description = $('meta[property="og:description"]').attr('content');
+    const image = $('meta[property="og:image"]').attr('content');
+    ok(res, { title, description, image, original_url: url });
   } catch (e) {
     err(res, e.message, 500);
   }
 });
 
-// ─── Spotify Track Info ───────────────────────────────────────────────────────
+// ─── Spotify (track info) ─────────────────────────────────────────────────────
 router.get('/spotify', async (req, res) => {
   const { url } = req.query;
   if (!url) return err(res, 'Missing ?url=');
   try {
-    // Extract track ID
-    const match = url.match(/track\/([a-zA-Z0-9]+)/);
-    if (!match) return err(res, 'Invalid Spotify track URL');
-    const trackId = match[1];
-    // Use open.spotify.com embed page for metadata (no key needed)
-    const r = await axios.get(`https://open.spotify.com/oembed?url=${encodeURIComponent(url)}`, { timeout: 10000 });
-    ok(res, {
-      track_id: trackId,
-      title: r.data.title,
-      thumbnail: r.data.thumbnail_url,
-      embed_url: r.data.html,
-      preview_url: `https://p.scdn.co/mp3-preview/${trackId}`,
-      note: 'Full audio download requires Spotify Premium API'
+    const r = await axios.get(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+      timeout: 15000
     });
+    const cheerio = require('cheerio');
+    const $ = cheerio.load(r.data);
+    const title = $('meta[property="og:title"]').attr('content');
+    const description = $('meta[property="og:description"]').attr('content');
+    const image = $('meta[property="og:image"]').attr('content');
+    const audio = $('meta[property="og:audio"]').attr('content');
+    ok(res, { title, description, image, preview_url: audio || null });
   } catch (e) {
     err(res, e.message, 500);
   }
