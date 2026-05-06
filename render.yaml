@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: nova-api
+    runtime: node
+    buildCommand: npm install --production
+    startCommand: node server.js
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: RATE_LIMIT_WINDOW_MS
+        value: 900000
+      - key: RATE_LIMIT_MAX
+        value: 200
+      # Optional — add these in Render dashboard if you have them
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENWEATHER_API_KEY
+        sync: false
+      - key: HUGGINGFACE_API_KEY
+        sync: false
