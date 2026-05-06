@@ -29,7 +29,12 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
+// ─── Static Frontend ──────────────────────────────────────────────────────────
+const path = require('path');
+app.use(express.static(path.join(__dirname, 'public')));
+
 // ─── Routes ───────────────────────────────────────────────────────────────────
+app.use('/api/novaai',     require('./src/routes/novaai'));
 app.use('/api/downloader', require('./src/routes/downloader'));
 app.use('/api/ai',         require('./src/routes/ai'));
 app.use('/api/tools',      require('./src/routes/tools'));
@@ -42,12 +47,29 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
 });
 
-app.get('/', (req, res) => {
+app.get('/api', (req, res) => {
   res.json({
     name: 'NovaSpark All-in-One API',
-    version: '1.0.0',
+    version: '2.0.0',
     status: 'running',
+    dashboard: '/',
     endpoints: {
+      novaai: {
+        chat:             'POST /api/novaai/chat  body:{message, persona, context}',
+        code:             'POST /api/novaai/code  body:{prompt, language}',
+        analyze_image:    'POST /api/novaai/analyze-image  body:{imageUrl, question}',
+        vision:           'POST /api/novaai/vision  body:{imageUrl}',
+        tts:              'POST /api/novaai/tts  body:{text, lang}',
+        models:           'GET  /api/novaai/models',
+        rewrite:          'POST /api/novaai/rewrite  body:{text, tone}',
+        story:            'POST /api/novaai/story  body:{prompt, genre, length}',
+        quiz:             'POST /api/novaai/quiz  body:{topic, difficulty, count}',
+        advice:           'POST /api/novaai/advice  body:{situation}',
+        eli5:             'POST /api/novaai/eli5  body:{topic}',
+        compliment:       'GET  /api/novaai/compliment?name=',
+        pickup:           'GET  /api/novaai/pickup?topic=',
+        wyr:              'GET  /api/novaai/wyr'
+      },
       downloader: {
         youtube_video:    'GET /api/downloader/youtube?url=',
         youtube_audio:    'GET /api/downloader/youtube/audio?url=',
