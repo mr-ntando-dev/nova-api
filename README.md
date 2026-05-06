@@ -1,140 +1,86 @@
-# NovaSpark All-in-One API 🚀
+# ⚡ NovaSpark API v3.0.0
 
-A massive all-in-one API server for WhatsApp bots. **50+ endpoints** covering downloaders, AI, tools, media, and search.
+**All-in-One API for WhatsApp Bots** — 75+ endpoints covering AI, downloaders, crypto, dev tools, entertainment & more. Deploy in 1 click.
 
-## Deploy on Render
+![Version](https://img.shields.io/badge/version-3.0.0-6c5ce7)
+![Endpoints](https://img.shields.io/badge/endpoints-75+-00d68f)
+![License](https://img.shields.io/badge/license-MIT-blue)
 
-1. Push this repo to GitHub
-2. Go to [render.com](https://render.com) → New → Web Service
-3. Connect your GitHub repo
-4. Render auto-detects `render.yaml` — just click **Deploy**
-5. Set optional env vars in the Render dashboard (see below)
+## 🚀 Deploy on Render
 
-## Environment Variables
+1. Push to GitHub
+2. Go to [render.com](https://render.com/) → New → Web Service
+3. Connect your repo — Render auto-detects `render.yaml`
+4. Click **Deploy** — done!
+
+## 📦 API Categories (75+ Endpoints)
+
+| Category | Base Path | Endpoints |
+|----------|-----------|-----------|
+| 🤖 NovaAI | `/api/novaai` | Chat with personas, code gen, ELI5, compliments, pickup lines |
+| 📥 Downloader | `/api/downloader` | YouTube, TikTok, Instagram, Facebook, Twitter, Pinterest |
+| 🧠 AI | `/api/ai` | Chat, imagine, translate, summarize, sentiment, lyrics, trivia |
+| 🛠️ Tools | `/api/tools` | QR, weather, currency, password, hash, base64, wiki, jokes |
+| 💰 Crypto | `/api/crypto` | Prices, trending, coin info, global stats (CoinGecko) |
+| 🎬 Entertainment | `/api/entertainment` | Movies, books, horoscope, riddles, facts, truth/dare |
+| 👨‍💻 Dev Tools | `/api/dev` | GitHub, NPM, HTTP codes, regex, JSON, UUID, timestamps |
+| 🔍 Search | `/api/search` | Web, news, images, GIFs, Urban Dictionary |
+| 🎮 Media | `/api/media` | Memes, anime, pokemon, cats, dogs |
+| 📱 WhatsApp | `/api/whatsapp` | Stickers, welcome/goodbye cards, rank cards |
+
+## 🔑 Environment Variables
 
 | Variable | Required | Description |
-|---|---|---|
-| `NODE_ENV` | Auto-set | `production` |
-| `PORT` | Auto-set | `10000` on Render |
-| `OPENAI_API_KEY` | Optional | Enables GPT-3.5 for `/api/ai/chat` |
-| `OPENWEATHER_API_KEY` | Optional | Enables detailed weather data |
-| `HUGGINGFACE_API_KEY` | Optional | Enables summarizer + better AI chat |
-| `RENDER_URL` | Optional | Your Render URL — keeps service alive |
+|----------|----------|-------------|
+| `PORT` | Auto | Server port (default 3000) |
+| `OPENAI_API_KEY` | Optional | Enables GPT for AI chat |
+| `HUGGINGFACE_API_KEY` | Optional | Enables HuggingFace models |
+| `OPENWEATHER_API_KEY` | Optional | Better weather data |
+| `RENDER_URL` | Optional | Keep-alive ping for free tier |
 
-> Without API keys, most endpoints still work using free fallbacks.
+> **All endpoints work without API keys** using free fallbacks.
 
-## API Endpoints
+## 💻 Quick Start
 
-### 📥 Downloader `/api/downloader`
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/youtube?url=` | YouTube video info + download links |
-| GET | `/youtube/audio?url=` | YouTube audio (MP3) |
-| GET | `/youtube/search?q=` | YouTube search |
-| GET | `/tiktok?url=` | TikTok no-watermark download |
-| GET | `/instagram?url=` | Instagram media |
-| GET | `/facebook?url=` | Facebook video |
-| GET | `/twitter?url=` | Twitter/X video |
-| GET | `/pinterest?url=` | Pinterest media |
-| GET | `/soundcloud?url=` | SoundCloud track info |
-| GET | `/spotify?url=` | Spotify track info + preview |
-
-### 🤖 AI `/api/ai`
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/chat` `{message}` | AI chat (GPT / Pollinations fallback) |
-| GET | `/imagine?prompt=` | AI image generation (Pollinations) |
-| GET | `/translate?text=&to=` | Text translation (90+ languages) |
-| POST | `/summarize` `{text}` | Text summarizer |
-| POST | `/sentiment` `{text}` | Sentiment analysis |
-| GET | `/lyrics?song=&artist=` | Song lyrics |
-| GET | `/trivia` | Trivia questions |
-| GET | `/define?word=` | Word definition |
-
-### 🛠️ Tools `/api/tools`
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/qr?text=` | QR code generator |
-| GET | `/shorten?url=` | URL shortener (TinyURL) |
-| GET | `/password?length=` | Password generator |
-| GET | `/ip?ip=` | IP lookup |
-| GET | `/weather?city=` | Weather info |
-| GET | `/currency?from=&to=&amount=` | Currency converter |
-| GET | `/joke` | Random joke |
-| GET | `/quote` | Random quote |
-| GET | `/wiki?q=` | Wikipedia search |
-| GET | `/base64/encode?text=` | Base64 encode |
-| GET | `/base64/decode?text=` | Base64 decode |
-| GET | `/hash?text=&algo=md5` | Hash generator |
-| GET | `/color?hex=` | Color info |
-| GET | `/convert?value=&from=&to=` | Unit converter |
-| GET | `/palindrome?text=` | Palindrome check |
-| GET | `/reverse?text=` | Reverse text |
-| GET | `/wordcount?text=` | Word counter |
-| GET | `/numfact?number=` | Number fact |
-| GET | `/time?timezone=` | Time/timezone |
-
-### 📱 WhatsApp `/api/whatsapp`
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/sticker` `{imageUrl}` | Image → WebP sticker |
-| GET | `/text2img?text=` | Text → PNG image |
-| GET | `/welcome?name=&group=` | Welcome card PNG |
-| GET | `/goodbye?name=&group=` | Goodbye card PNG |
-| GET | `/rankcard?name=&level=&xp=&maxXp=` | Rank card PNG |
-| GET | `/qr?text=` | QR code PNG |
-
-### 🔍 Search `/api/search`
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/google?q=` | Web search (DuckDuckGo) |
-| GET | `/news?q=` | News search |
-| GET | `/gif?q=` | GIF search (Tenor) |
-| GET | `/images?q=` | Image search |
-| GET | `/urban?term=` | Urban Dictionary |
-
-### 🎮 Media `/api/media`
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/meme?subreddit=` | Random meme |
-| GET | `/waifu?type=` | Anime SFW image |
-| GET | `/cat` | Random cat |
-| GET | `/dog` | Random dog |
-| GET | `/neko` | Neko image |
-| GET | `/animequote` | Anime quote |
-| GET | `/pokemon?name=` | Pokémon info |
-| GET | `/anime?q=` | Anime search |
-| GET | `/minecraft?username=` | Minecraft player info |
-
-## Usage from WhatsApp Bot
-
-```js
-const API = 'https://your-service.onrender.com';
-
-// Download TikTok
-const tiktok = await fetch(`${API}/api/downloader/tiktok?url=${videoUrl}`).then(r => r.json());
-console.log(tiktok.video_nowatermark);
-
-// AI Chat
-const chat = await fetch(`${API}/api/ai/chat`, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ message: 'Hello!' })
-}).then(r => r.json());
-console.log(chat.reply);
-
-// Make sticker
-const sticker = await fetch(`${API}/api/whatsapp/sticker`, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ imageUrl: 'https://...' })
-}).then(r => r.json());
-// sticker.base64 → send as WebP sticker
+```bash
+git clone https://github.com/mr-ntando-dev/nova-api.git
+cd nova-api
+npm install
+npm start
+# Open http://localhost:3000
 ```
 
-## Stack
+## 📡 Usage Examples
+
+```javascript
+const API = 'https://your-app.onrender.com';
+
+// AI Chat with persona
+const chat = await fetch(`${API}/api/novaai/chat`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ message: 'Hello!', persona: 'coder' })
+}).then(r => r.json());
+
+// Crypto price
+const btc = await fetch(`${API}/api/crypto/price?coin=bitcoin`).then(r => r.json());
+
+// TikTok download
+const tt = await fetch(`${API}/api/downloader/tiktok?url=${videoUrl}`).then(r => r.json());
+
+// GitHub user
+const gh = await fetch(`${API}/api/dev/github?username=torvalds`).then(r => r.json());
+```
+
+## 🏗️ Stack
+
 - Node.js 18+ / Express
 - Sharp (image processing)
-- ytdl-core (YouTube)
+- @distube/ytdl-core (YouTube)
 - Cheerio (scraping)
-- QRCode, Sentiment, and more
+- CoinGecko API (crypto)
+- Multiple free AI providers with fallbacks
+
+## 📄 License
+
+MIT — do whatever you want with it.

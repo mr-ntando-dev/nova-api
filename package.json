@@ -1,7 +1,7 @@
 {
   "name": "nova-api",
-  "version": "1.0.0",
-  "description": "NovaSpark All-in-One API Server — Downloaders, AI, Tools & More",
+  "version": "3.0.0",
+  "description": "NovaSpark All-in-One API — 75+ Endpoints for WhatsApp Bots: Downloaders, AI, Crypto, Tools & More",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

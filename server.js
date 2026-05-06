@@ -7,12 +7,17 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ─── Middleware ────────────────────────────────────────────────────────────────
-app.use(helmet({ contentSecurityPolicy: false }));
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: false
+}));
 app.use(cors());
 app.use(compression());
 app.use(express.json({ limit: '10mb' }));
@@ -22,7 +27,7 @@ if (process.env.NODE_ENV !== 'production') app.use(morgan('dev'));
 // ─── Rate Limiter ──────────────────────────────────────────────────────────────
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
-  max: parseInt(process.env.RATE_LIMIT_MAX) || 200,
+  max: parseInt(process.env.RATE_LIMIT_MAX) || 300,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, error: 'Too many requests, slow down.' }
@@ -30,132 +35,80 @@ const limiter = rateLimit({
 app.use('/api/', limiter);
 
 // ─── Static Frontend ──────────────────────────────────────────────────────────
-const path = require('path');
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
-app.use('/api/novaai',     require('./src/routes/novaai'));
-app.use('/api/downloader', require('./src/routes/downloader'));
-app.use('/api/ai',         require('./src/routes/ai'));
-app.use('/api/tools',      require('./src/routes/tools'));
-app.use('/api/whatsapp',   require('./src/routes/whatsapp'));
-app.use('/api/search',     require('./src/routes/search'));
-app.use('/api/media',      require('./src/routes/media'));
+app.use('/api/novaai',       require('./src/routes/novaai'));
+app.use('/api/downloader',   require('./src/routes/downloader'));
+app.use('/api/ai',           require('./src/routes/ai'));
+app.use('/api/tools',        require('./src/routes/tools'));
+app.use('/api/whatsapp',     require('./src/routes/whatsapp'));
+app.use('/api/search',       require('./src/routes/search'));
+app.use('/api/media',        require('./src/routes/media'));
+app.use('/api/entertainment', require('./src/routes/entertainment'));
+app.use('/api/crypto',       require('./src/routes/crypto'));
+app.use('/api/dev',          require('./src/routes/dev'));
 
-// ─── Health & Root ────────────────────────────────────────────────────────────
+// ─── Health ───────────────────────────────────────────────────────────────────
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
+  res.json({
+    status: 'ok',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+    version: '3.0.0',
+    endpoints_count: 75
+  });
 });
 
+// ─── API Index ────────────────────────────────────────────────────────────────
 app.get('/api', (req, res) => {
   res.json({
     name: 'NovaSpark All-in-One API',
-    version: '2.0.0',
+    version: '3.0.0',
     status: 'running',
+    author: 'NovaSpark Dev',
     dashboard: '/',
-    endpoints: {
-      novaai: {
-        chat:             'POST /api/novaai/chat  body:{message, persona, context}',
-        code:             'POST /api/novaai/code  body:{prompt, language}',
-        analyze_image:    'POST /api/novaai/analyze-image  body:{imageUrl, question}',
-        vision:           'POST /api/novaai/vision  body:{imageUrl}',
-        tts:              'POST /api/novaai/tts  body:{text, lang}',
-        models:           'GET  /api/novaai/models',
-        rewrite:          'POST /api/novaai/rewrite  body:{text, tone}',
-        story:            'POST /api/novaai/story  body:{prompt, genre, length}',
-        quiz:             'POST /api/novaai/quiz  body:{topic, difficulty, count}',
-        advice:           'POST /api/novaai/advice  body:{situation}',
-        eli5:             'POST /api/novaai/eli5  body:{topic}',
-        compliment:       'GET  /api/novaai/compliment?name=',
-        pickup:           'GET  /api/novaai/pickup?topic=',
-        wyr:              'GET  /api/novaai/wyr'
-      },
-      downloader: {
-        youtube_video:    'GET /api/downloader/youtube?url=',
-        youtube_audio:    'GET /api/downloader/youtube/audio?url=',
-        youtube_search:   'GET /api/downloader/youtube/search?q=',
-        tiktok:           'GET /api/downloader/tiktok?url=',
-        instagram:        'GET /api/downloader/instagram?url=',
-        facebook:         'GET /api/downloader/facebook?url=',
-        twitter:          'GET /api/downloader/twitter?url=',
-        pinterest:        'GET /api/downloader/pinterest?url=',
-        soundcloud:       'GET /api/downloader/soundcloud?url=',
-        spotify_info:     'GET /api/downloader/spotify?url='
-      },
-      ai: {
-        chat:             'POST /api/ai/chat  body:{message}',
-        imagine:          'GET  /api/ai/imagine?prompt=',
-        translate:        'GET  /api/ai/translate?text=&to=',
-        summarize:        'POST /api/ai/summarize  body:{text}',
-        sentiment:        'POST /api/ai/sentiment  body:{text}',
-        lyrics:           'GET  /api/ai/lyrics?song=&artist=',
-        trivia:           'GET  /api/ai/trivia?category=',
-        definition:       'GET  /api/ai/define?word='
-      },
-      tools: {
-        qr_generate:      'GET  /api/tools/qr?text=',
-        url_shorten:      'GET  /api/tools/shorten?url=',
-        password:         'GET  /api/tools/password?length=&symbols=true',
-        ip_lookup:        'GET  /api/tools/ip?ip=',
-        weather:          'GET  /api/tools/weather?city=',
-        currency:         'GET  /api/tools/currency?from=USD&to=ZAR&amount=1',
-        joke:             'GET  /api/tools/joke?type=',
-        quote:            'GET  /api/tools/quote',
-        wikipedia:        'GET  /api/tools/wiki?q=',
-        dictionary:       'GET  /api/tools/dictionary?word=',
-        base64_encode:    'GET  /api/tools/base64/encode?text=',
-        base64_decode:    'GET  /api/tools/base64/decode?text=',
-        hash:             'GET  /api/tools/hash?text=&algo=md5',
-        color:            'GET  /api/tools/color?hex=',
-        unit_convert:     'GET  /api/tools/convert?value=&from=km&to=miles',
-        palindrome:       'GET  /api/tools/palindrome?text=',
-        reverse_text:     'GET  /api/tools/reverse?text=',
-        word_count:       'GET  /api/tools/wordcount?text=',
-        number_fact:      'GET  /api/tools/numfact?number=',
-        time_zones:       'GET  /api/tools/time?city='
-      },
-      whatsapp: {
-        sticker:          'POST /api/whatsapp/sticker  body:{imageUrl}',
-        text2img:         'GET  /api/whatsapp/text2img?text=&bg=&color=',
-        pp_get:           'GET  /api/whatsapp/pp?jid=',
-        welcome_card:     'GET  /api/whatsapp/welcome?name=&group='
-      },
-      search: {
-        google:           'GET  /api/search/google?q=',
-        news:             'GET  /api/search/news?q=',
-        images:           'GET  /api/search/images?q=',
-        gifs:             'GET  /api/search/gif?q='
-      },
-      media: {
-        meme:             'GET  /api/media/meme',
-        anime_waifu:      'GET  /api/media/waifu?type=',
-        cat:              'GET  /api/media/cat',
-        dog:              'GET  /api/media/dog',
-        neko:             'GET  /api/media/neko'
-      }
+    total_endpoints: 75,
+    categories: {
+      novaai: '/api/novaai - Advanced AI with personas, code gen, vision, TTS',
+      downloader: '/api/downloader - YouTube, TikTok, Instagram, Facebook, Twitter, Pinterest',
+      ai: '/api/ai - Chat, imagine, translate, summarize, sentiment, lyrics',
+      tools: '/api/tools - QR, weather, currency, password, hash, encode/decode',
+      whatsapp: '/api/whatsapp - Stickers, welcome/goodbye cards, rank cards',
+      search: '/api/search - Web, news, images, GIFs, Urban Dictionary',
+      media: '/api/media - Memes, anime, pokemon, cats, dogs',
+      entertainment: '/api/entertainment - Movies, books, horoscope, riddles, facts',
+      crypto: '/api/crypto - Prices, trending, exchanges, NFTs',
+      dev: '/api/dev - GitHub user, npm package, HTTP status, regex tester, JSON formatter'
     }
   });
 });
 
-// ─── 404 & Error Handler ──────────────────────────────────────────────────────
-app.use((req, res) => {
-  res.status(404).json({ success: false, error: `Route ${req.method} ${req.path} not found` });
+// ─── SPA Fallback ─────────────────────────────────────────────────────────────
+app.get('*', (req, res) => {
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ success: false, error: 'Endpoint not found' });
+  }
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+// ─── Error Handler ────────────────────────────────────────────────────────────
+app.use((error, req, res, next) => {
+  console.error('Server Error:', error.message);
+  res.status(500).json({ success: false, error: 'Internal server error' });
 });
 
-// ─── Keep-alive ping (prevents Render free tier from sleeping) ────────────────
+// ─── Start Server ─────────────────────────────────────────────────────────────
+app.listen(PORT, () => {
+  console.log(`⚡ NovaSpark API v3.0.0 running on port ${PORT}`);
+  console.log(`📡 Dashboard: http://localhost:${PORT}`);
+  console.log(`🔗 API base: http://localhost:${PORT}/api`);
+});
+
+// ─── Keep Alive (Render free tier) ────────────────────────────────────────────
 if (process.env.RENDER_URL) {
   setInterval(() => {
-    require('node-fetch')(process.env.RENDER_URL + '/health').catch(() => {});
-  }, 14 * 60 * 1000); // ping every 14 minutes
+    const https = require('https');
+    https.get(process.env.RENDER_URL + '/health').on('error', () => {});
+  }, 14 * 60 * 1000);
 }
-
-app.listen(PORT, () => {
-  console.log(`🚀 NovaSpark API running on port ${PORT}`);
-});
-
-module.exports = app;

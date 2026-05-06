@@ -3,432 +3,269 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NovaSpark API - Testing Dashboard</title>
+  <title>NovaSpark API v3.0</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    :root {
-      --bg: #0a0a0f;
-      --surface: #12121a;
-      --surface2: #1a1a26;
-      --border: #2a2a3a;
-      --text: #e4e4e7;
-      --text-dim: #71717a;
-      --accent: #6366f1;
-      --accent-glow: rgba(99, 102, 241, 0.15);
-      --green: #22c55e;
-      --orange: #f59e0b;
-      --red: #ef4444;
-      --cyan: #06b6d4;
-      --pink: #ec4899;
-    }
-    body {
-      font-family: 'Inter', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-
-    /* Header */
-    .header {
-      padding: 2rem;
-      text-align: center;
-      border-bottom: 1px solid var(--border);
-      background: linear-gradient(180deg, rgba(99,102,241,0.05) 0%, transparent 100%);
-    }
-    .header h1 {
-      font-size: 2.5rem;
-      font-weight: 800;
-      background: linear-gradient(135deg, #6366f1, #ec4899);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 0.5rem;
-    }
-    .header p { color: var(--text-dim); font-size: 1rem; }
-    .stats {
-      display: flex;
-      justify-content: center;
-      gap: 2rem;
-      margin-top: 1.5rem;
-      flex-wrap: wrap;
-    }
-    .stat {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1rem 1.5rem;
-      text-align: center;
-    }
-    .stat-value { font-size: 1.5rem; font-weight: 700; color: var(--accent); }
-    .stat-label { font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
-
-    /* Status bar */
-    .status-bar {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      padding: 0.75rem;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-    }
-    .status-dot {
-      width: 10px; height: 10px; border-radius: 50%;
-      background: var(--green); animation: pulse 2s infinite;
-    }
-    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
-
-    /* Main layout */
-    .main { display: flex; min-height: calc(100vh - 200px); }
-    .sidebar {
-      width: 260px; background: var(--surface);
-      border-right: 1px solid var(--border);
-      padding: 1rem 0; overflow-y: auto;
-      position: sticky; top: 0; height: calc(100vh - 200px);
-    }
-    .sidebar-section {
-      padding: 0.5rem 1rem;
-      font-size: 0.7rem; font-weight: 600;
-      text-transform: uppercase; letter-spacing: 0.08em;
-      color: var(--text-dim); margin-top: 1rem;
-    }
-    .sidebar-item {
-      display: flex; align-items: center; gap: 0.5rem;
-      padding: 0.6rem 1.25rem; cursor: pointer;
-      transition: all 0.15s; font-size: 0.85rem; color: var(--text-dim);
-    }
-    .sidebar-item:hover { background: var(--surface2); color: var(--text); }
-    .sidebar-item.active { background: var(--accent-glow); color: var(--accent); border-right: 2px solid var(--accent); }
-    .sidebar-item i { font-size: 1.1rem; width: 20px; }
-
-    /* Content */
-    .content { flex: 1; padding: 2rem; overflow-y: auto; }
-    .section { display: none; }
-    .section.active { display: block; }
-    .section-title {
-      font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem;
-      display: flex; align-items: center; gap: 0.5rem;
-    }
-    .section-desc { color: var(--text-dim); margin-bottom: 1.5rem; }
-
-    /* API Tester */
-    .tester {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 1.5rem;
-      margin-bottom: 1.5rem;
-    }
-    .tester-header {
-      display: flex; align-items: center; gap: 0.75rem;
-      margin-bottom: 1rem;
-    }
-    .method-badge {
-      padding: 0.25rem 0.5rem; border-radius: 6px;
-      font-size: 0.7rem; font-weight: 700; font-family: 'JetBrains Mono';
-    }
-    .method-badge.get { background: rgba(34,197,94,0.15); color: var(--green); }
-    .method-badge.post { background: rgba(245,158,11,0.15); color: var(--orange); }
-    .tester-path {
-      font-family: 'JetBrains Mono'; font-size: 0.85rem;
-      color: var(--text); font-weight: 500;
-    }
-    .tester-desc { font-size: 0.8rem; color: var(--text-dim); margin-bottom: 1rem; }
-    .input-row {
-      display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap;
-    }
-    .input-row input, .input-row textarea, .input-row select {
-      flex: 1; min-width: 200px;
-      background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
-      padding: 0.6rem 0.75rem; color: var(--text); font-size: 0.85rem;
-      font-family: 'JetBrains Mono';
-    }
-    .input-row input:focus, .input-row textarea:focus {
-      outline: none; border-color: var(--accent);
-    }
-    .btn-test {
-      background: var(--accent); color: white; border: none;
-      padding: 0.6rem 1.25rem; border-radius: 8px;
-      font-weight: 600; cursor: pointer; font-size: 0.85rem;
-      transition: all 0.15s;
-    }
-    .btn-test:hover { opacity: 0.9; transform: translateY(-1px); }
-    .btn-test:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    /* Response */
-    .response {
-      margin-top: 1rem; background: var(--bg);
-      border: 1px solid var(--border); border-radius: 10px;
-      overflow: hidden; display: none;
-    }
-    .response.show { display: block; }
-    .response-header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0.5rem 1rem; background: var(--surface2);
-      border-bottom: 1px solid var(--border);
-    }
-    .response-status {
-      font-family: 'JetBrains Mono'; font-size: 0.8rem; font-weight: 600;
-    }
-    .response-status.s2xx { color: var(--green); }
-    .response-status.s4xx { color: var(--orange); }
-    .response-status.s5xx { color: var(--red); }
-    .response-time { font-size: 0.75rem; color: var(--text-dim); }
-    .response-body {
-      padding: 1rem; overflow-x: auto;
-      font-family: 'JetBrains Mono'; font-size: 0.8rem;
-      line-height: 1.6; max-height: 400px; overflow-y: auto;
-      white-space: pre-wrap; word-break: break-word;
-    }
-
-    /* NovaAI section */
-    .novaai-badge {
-      background: linear-gradient(135deg, #6366f1, #ec4899);
-      color: white; padding: 0.2rem 0.6rem; border-radius: 6px;
-      font-size: 0.7rem; font-weight: 700;
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-      .main { flex-direction: column; }
-      .sidebar { width: 100%; height: auto; position: static; display: flex; overflow-x: auto; }
-      .sidebar-section { display: none; }
-      .sidebar-item { white-space: nowrap; }
-      .content { padding: 1rem; }
-    }
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{--bg:#0a0a0f;--surface:#12121a;--surface2:#1a1a26;--border:#252535;--text:#e8e8f0;--text-dim:#8888a0;--accent:#6c5ce7;--accent2:#a29bfe;--green:#00d68f;--red:#ff6b6b;--orange:#ffa502;--blue:#4ecdc4}
+    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+    .header{background:linear-gradient(135deg,#6c5ce7 0%,#a29bfe 50%,#4ecdc4 100%);padding:2rem;text-align:center}
+    .header h1{font-size:2.5rem;font-weight:800;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,0.3)}
+    .header p{color:rgba(255,255,255,0.85);margin-top:0.5rem;font-size:1.1rem}
+    .stats{display:flex;gap:1rem;justify-content:center;margin-top:1.5rem;flex-wrap:wrap}
+    .stat{background:rgba(255,255,255,0.15);backdrop-filter:blur(10px);padding:0.5rem 1.25rem;border-radius:50px;color:#fff;font-size:0.85rem;font-weight:500}
+    .nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0.75rem 1rem;display:flex;gap:0.5rem;overflow-x:auto;position:sticky;top:0;z-index:100}
+    .nav-btn{padding:0.5rem 1rem;border:1px solid var(--border);background:transparent;color:var(--text-dim);border-radius:8px;cursor:pointer;font-size:0.8rem;font-weight:500;white-space:nowrap;transition:all 0.2s}
+    .nav-btn:hover{border-color:var(--accent);color:var(--accent)}
+    .nav-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+    .container{max-width:1100px;margin:0 auto;padding:2rem 1rem}
+    .section{display:none}.section.active{display:block}
+    .section-title{font-size:1.5rem;font-weight:700;margin-bottom:0.25rem;display:flex;align-items:center;gap:0.5rem}
+    .section-desc{color:var(--text-dim);margin-bottom:1.5rem;font-size:0.9rem}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem;margin-bottom:1rem;transition:border-color 0.2s}
+    .card:hover{border-color:var(--accent)}
+    .card-head{display:flex;align-items:center;gap:0.75rem;margin-bottom:0.75rem}
+    .badge{padding:0.2rem 0.5rem;border-radius:4px;font-size:0.7rem;font-weight:700;font-family:'JetBrains Mono'}
+    .badge.get{background:rgba(0,214,143,0.15);color:var(--green)}
+    .badge.post{background:rgba(255,165,2,0.15);color:var(--orange)}
+    .card-path{font-family:'JetBrains Mono';font-size:0.85rem;color:var(--text)}
+    .card-desc{font-size:0.8rem;color:var(--text-dim);margin-bottom:0.75rem}
+    .inputs{display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.5rem}
+    .inputs input,.inputs textarea,.inputs select{flex:1;min-width:150px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:0.5rem 0.75rem;color:var(--text);font-size:0.8rem;font-family:'JetBrains Mono'}
+    .inputs input:focus,.inputs textarea:focus{outline:none;border-color:var(--accent)}
+    .btn{background:var(--accent);color:#fff;border:none;padding:0.5rem 1rem;border-radius:6px;font-weight:600;cursor:pointer;font-size:0.8rem}
+    .btn:hover{opacity:0.85}
+    .btn:disabled{opacity:0.4;cursor:not-allowed}
+    .response{margin-top:0.75rem;background:var(--bg);border:1px solid var(--border);border-radius:8px;display:none;overflow:hidden}
+    .response.show{display:block}
+    .res-head{padding:0.4rem 0.75rem;background:var(--surface2);border-bottom:1px solid var(--border);font-size:0.75rem;font-family:'JetBrains Mono';display:flex;justify-content:space-between}
+    .res-body{padding:0.75rem;max-height:300px;overflow-y:auto;font-family:'JetBrains Mono';font-size:0.75rem;white-space:pre-wrap;word-break:break-all;line-height:1.5}
+    .status-ok{color:var(--green)}.status-err{color:var(--red)}
+    @media(max-width:768px){.header h1{font-size:1.5rem}.container{padding:1rem 0.5rem}.inputs{flex-direction:column}}
   </style>
 </head>
 <body>
   <div class="header">
     <h1>⚡ NovaSpark API</h1>
-    <p>All-in-One API Server for WhatsApp Bots — 60+ endpoints</p>
+    <p>All-in-One API for WhatsApp Bots — 75+ Endpoints, Zero Config</p>
     <div class="stats">
-      <div class="stat"><div class="stat-value" id="endpointCount">60+</div><div class="stat-label">Endpoints</div></div>
-      <div class="stat"><div class="stat-value">6</div><div class="stat-label">Categories</div></div>
-      <div class="stat"><div class="stat-value" id="uptimeDisplay">-</div><div class="stat-label">Uptime</div></div>
-      <div class="stat"><div class="stat-value">FREE</div><div class="stat-label">No Keys Needed</div></div>
+      <div class="stat">🚀 v3.0.0</div>
+      <div class="stat">📡 75+ Endpoints</div>
+      <div class="stat">🆓 Free & Open Source</div>
+      <div class="stat" id="uptime">⏱ Loading...</div>
     </div>
   </div>
 
-  <div class="status-bar">
-    <div class="status-dot"></div>
-    <span style="font-size:0.85rem;">API Status: <strong style="color:var(--green)">Online</strong></span>
-    <span style="margin-left:1rem;font-size:0.75rem;color:var(--text-dim)" id="baseUrl"></span>
-  </div>
+  <div class="nav" id="nav"></div>
 
-  <div class="main">
-    <div class="sidebar" id="sidebar"></div>
-    <div class="content" id="content"></div>
-  </div>
+  <div class="container" id="content"></div>
 
   <script>
-    const BASE = window.location.origin;
-    document.getElementById('baseUrl').textContent = BASE;
+const BASE = window.location.origin;
+const SECTIONS = [
+  { id:'novaai', icon:'fa-robot', label:'NovaAI', desc:'Advanced AI chat with personas, code generation, and more',
+    endpoints:[
+      {m:'POST',p:'/api/novaai/chat',d:'AI Chat with personas',inputs:[{n:'message',ph:'Hello!'},{n:'persona',ph:'default/coder/creative/roast'}],body:true},
+      {m:'POST',p:'/api/novaai/code',d:'Generate code',inputs:[{n:'prompt',ph:'Write a sorting algo'},{n:'language',ph:'python'}],body:true},
+      {m:'POST',p:'/api/novaai/eli5',d:'Explain Like I\'m 5',inputs:[{n:'topic',ph:'quantum physics'}],body:true},
+      {m:'GET',p:'/api/novaai/compliment',d:'AI Compliment',inputs:[{n:'name',ph:'John'}]},
+      {m:'GET',p:'/api/novaai/pickup',d:'Pickup line',inputs:[{n:'topic',ph:'coding'}]},
+      {m:'GET',p:'/api/novaai/wyr',d:'Would You Rather (AI)'},
+    ]},
+  { id:'downloader', icon:'fa-download', label:'Downloader', desc:'Download from YouTube, TikTok, Instagram & more',
+    endpoints:[
+      {m:'GET',p:'/api/downloader/youtube',d:'YouTube video info',inputs:[{n:'url',ph:'https://youtube.com/watch?v=...'}]},
+      {m:'GET',p:'/api/downloader/youtube/audio',d:'YouTube audio',inputs:[{n:'url',ph:'https://youtube.com/watch?v=...'}]},
+      {m:'GET',p:'/api/downloader/youtube/search',d:'YouTube search',inputs:[{n:'q',ph:'lofi hip hop'}]},
+      {m:'GET',p:'/api/downloader/tiktok',d:'TikTok no watermark',inputs:[{n:'url',ph:'https://tiktok.com/@user/video/...'}]},
+      {m:'GET',p:'/api/downloader/instagram',d:'Instagram media',inputs:[{n:'url',ph:'https://instagram.com/p/...'}]},
+      {m:'GET',p:'/api/downloader/twitter',d:'Twitter/X video',inputs:[{n:'url',ph:'https://x.com/user/status/...'}]},
+    ]},
+  { id:'ai', icon:'fa-brain', label:'AI', desc:'Chat, translate, imagine, summarize, sentiment analysis',
+    endpoints:[
+      {m:'POST',p:'/api/ai/chat',d:'AI Chat',inputs:[{n:'message',ph:'Tell me a joke'}],body:true},
+      {m:'GET',p:'/api/ai/imagine',d:'AI Image Gen',inputs:[{n:'prompt',ph:'a cat in space'}]},
+      {m:'GET',p:'/api/ai/translate',d:'Translate text',inputs:[{n:'text',ph:'Hello world'},{n:'to',ph:'es'}]},
+      {m:'POST',p:'/api/ai/summarize',d:'Summarize text',inputs:[{n:'text',ph:'Paste long text here...',type:'textarea'}],body:true},
+      {m:'POST',p:'/api/ai/sentiment',d:'Sentiment analysis',inputs:[{n:'text',ph:'I love this product!'}],body:true},
+      {m:'GET',p:'/api/ai/lyrics',d:'Song lyrics',inputs:[{n:'song',ph:'Bohemian Rhapsody'},{n:'artist',ph:'Queen'}]},
+      {m:'GET',p:'/api/ai/define',d:'Word definition',inputs:[{n:'word',ph:'serendipity'}]},
+    ]},
+  { id:'tools', icon:'fa-wrench', label:'Tools', desc:'QR codes, weather, currency, hashing, encoding & more',
+    endpoints:[
+      {m:'GET',p:'/api/tools/qr',d:'QR Code generator',inputs:[{n:'text',ph:'https://example.com'}]},
+      {m:'GET',p:'/api/tools/weather',d:'Weather info',inputs:[{n:'city',ph:'London'}]},
+      {m:'GET',p:'/api/tools/currency',d:'Currency convert',inputs:[{n:'from',ph:'USD'},{n:'to',ph:'ZAR'},{n:'amount',ph:'100'}]},
+      {m:'GET',p:'/api/tools/password',d:'Password generator',inputs:[{n:'length',ph:'16'}]},
+      {m:'GET',p:'/api/tools/hash',d:'Hash text',inputs:[{n:'text',ph:'hello'},{n:'algo',ph:'sha256'}]},
+      {m:'GET',p:'/api/tools/ip',d:'IP Lookup',inputs:[{n:'ip',ph:'8.8.8.8'}]},
+      {m:'GET',p:'/api/tools/joke',d:'Random joke'},
+      {m:'GET',p:'/api/tools/quote',d:'Random quote'},
+      {m:'GET',p:'/api/tools/wiki',d:'Wikipedia search',inputs:[{n:'q',ph:'artificial intelligence'}]},
+    ]},
+  { id:'crypto', icon:'fa-coins', label:'Crypto', desc:'Real-time crypto prices, trending coins, market data',
+    endpoints:[
+      {m:'GET',p:'/api/crypto/price',d:'Coin price',inputs:[{n:'coin',ph:'bitcoin'},{n:'currency',ph:'usd'}]},
+      {m:'GET',p:'/api/crypto/prices',d:'Multiple prices',inputs:[{n:'coins',ph:'bitcoin,ethereum,solana'}]},
+      {m:'GET',p:'/api/crypto/trending',d:'Trending coins'},
+      {m:'GET',p:'/api/crypto/info',d:'Coin details',inputs:[{n:'coin',ph:'ethereum'}]},
+      {m:'GET',p:'/api/crypto/global',d:'Global market stats'},
+    ]},
+  { id:'entertainment', icon:'fa-gamepad', label:'Fun', desc:'Movies, books, horoscope, riddles, facts, games',
+    endpoints:[
+      {m:'GET',p:'/api/entertainment/movie',d:'Movie/TV search',inputs:[{n:'title',ph:'Inception'}]},
+      {m:'GET',p:'/api/entertainment/book',d:'Book search',inputs:[{n:'q',ph:'Harry Potter'}]},
+      {m:'GET',p:'/api/entertainment/horoscope',d:'Horoscope',inputs:[{n:'sign',ph:'aries'}]},
+      {m:'GET',p:'/api/entertainment/riddle',d:'Random riddle'},
+      {m:'GET',p:'/api/entertainment/fact',d:'Random fact'},
+      {m:'GET',p:'/api/entertainment/today',d:'This day in history'},
+      {m:'GET',p:'/api/entertainment/truthordare',d:'Truth or Dare',inputs:[{n:'type',ph:'truth/dare/random'}]},
+    ]},
+  { id:'dev', icon:'fa-code', label:'Dev Tools', desc:'GitHub, NPM, regex, JSON, UUID, timestamps',
+    endpoints:[
+      {m:'GET',p:'/api/dev/github',d:'GitHub user info',inputs:[{n:'username',ph:'torvalds'}]},
+      {m:'GET',p:'/api/dev/github/repos',d:'GitHub repos',inputs:[{n:'username',ph:'torvalds'}]},
+      {m:'GET',p:'/api/dev/npm',d:'NPM package info',inputs:[{n:'package',ph:'express'}]},
+      {m:'GET',p:'/api/dev/httpstatus',d:'HTTP status info',inputs:[{n:'code',ph:'404'}]},
+      {m:'POST',p:'/api/dev/regex',d:'Regex tester',inputs:[{n:'pattern',ph:'\\d+'},{n:'text',ph:'hello 123 world 456'}],body:true},
+      {m:'POST',p:'/api/dev/json',d:'JSON validator',inputs:[{n:'text',ph:'{"key": "value"}',type:'textarea'}],body:true},
+      {m:'GET',p:'/api/dev/uuid',d:'UUID generator',inputs:[{n:'count',ph:'5'}]},
+      {m:'GET',p:'/api/dev/timestamp',d:'Timestamp converter',inputs:[{n:'ts',ph:'1700000000'}]},
+    ]},
+  { id:'search', icon:'fa-search', label:'Search', desc:'Web, news, images, GIFs, Urban Dictionary',
+    endpoints:[
+      {m:'GET',p:'/api/search/google',d:'Web search',inputs:[{n:'q',ph:'latest tech news'}]},
+      {m:'GET',p:'/api/search/news',d:'News search',inputs:[{n:'q',ph:'AI'}]},
+      {m:'GET',p:'/api/search/images',d:'Image search',inputs:[{n:'q',ph:'sunset'}]},
+      {m:'GET',p:'/api/search/gif',d:'GIF search',inputs:[{n:'q',ph:'happy'}]},
+      {m:'GET',p:'/api/search/urban',d:'Urban Dictionary',inputs:[{n:'term',ph:'GOAT'}]},
+    ]},
+  { id:'media', icon:'fa-photo-film', label:'Media', desc:'Memes, anime, pokemon, random animals',
+    endpoints:[
+      {m:'GET',p:'/api/media/meme',d:'Random meme',inputs:[{n:'subreddit',ph:'memes'}]},
+      {m:'GET',p:'/api/media/waifu',d:'Anime image',inputs:[{n:'type',ph:'waifu/neko/hug'}]},
+      {m:'GET',p:'/api/media/cat',d:'Random cat'},
+      {m:'GET',p:'/api/media/dog',d:'Random dog'},
+      {m:'GET',p:'/api/media/pokemon',d:'Pokémon info',inputs:[{n:'name',ph:'pikachu'}]},
+      {m:'GET',p:'/api/media/anime',d:'Anime search',inputs:[{n:'q',ph:'Naruto'}]},
+    ]},
+  { id:'whatsapp', icon:'fa-comment-dots', label:'WhatsApp', desc:'Stickers, welcome cards, rank cards, text images',
+    endpoints:[
+      {m:'POST',p:'/api/whatsapp/sticker',d:'Image to sticker',inputs:[{n:'imageUrl',ph:'https://example.com/img.png'}],body:true},
+      {m:'GET',p:'/api/whatsapp/welcome',d:'Welcome card',inputs:[{n:'name',ph:'John'},{n:'group',ph:'Cool Group'}]},
+      {m:'GET',p:'/api/whatsapp/goodbye',d:'Goodbye card',inputs:[{n:'name',ph:'John'},{n:'group',ph:'Cool Group'}]},
+      {m:'GET',p:'/api/whatsapp/rankcard',d:'Rank card',inputs:[{n:'name',ph:'Player1'},{n:'level',ph:'5'},{n:'xp',ph:'750'},{n:'maxXp',ph:'1000'}]},
+    ]},
+];
 
-    // Fetch uptime
-    fetch(BASE + '/health').then(r=>r.json()).then(d => {
-      const mins = Math.floor(d.uptime / 60);
-      document.getElementById('uptimeDisplay').textContent = mins < 60 ? mins + 'm' : Math.floor(mins/60) + 'h ' + (mins%60) + 'm';
-    }).catch(()=>{});
+// Build nav
+const nav = document.getElementById('nav');
+SECTIONS.forEach((s,i) => {
+  const btn = document.createElement('button');
+  btn.className = 'nav-btn' + (i===0?' active':'');
+  btn.innerHTML = `<i class="fas ${s.icon}"></i> ${s.label}`;
+  btn.onclick = () => switchSection(s.id);
+  nav.appendChild(btn);
+});
 
-    const categories = [
-      {
-        id: 'novaai', name: 'NovaAI', icon: 'ri-robot-2-line', color: '#ec4899',
-        endpoints: [
-          { method: 'POST', path: '/api/novaai/chat', desc: 'Advanced AI chat with personas & memory', inputs: [{name:'message',ph:'Hello NovaAI!'},{name:'persona',ph:'default (or: coder, tutor, creative, roast, philosopher)',type:'select',options:['default','coder','tutor','creative','roast','philosopher','therapist','chef','fitness']},{name:'context',ph:'Optional context (previous conversation)'}], body: true },
-          { method: 'POST', path: '/api/novaai/code', desc: 'AI code generation & explanation', inputs: [{name:'prompt',ph:'Write a Python function to sort a list'},{name:'language',ph:'python'}], body: true },
-          { method: 'POST', path: '/api/novaai/analyze-image', desc: 'AI image analysis / description', inputs: [{name:'imageUrl',ph:'https://example.com/image.jpg'},{name:'question',ph:'What do you see?'}], body: true },
-          { method: 'POST', path: '/api/novaai/tts', desc: 'Text to speech URL', inputs: [{name:'text',ph:'Hello world!'},{name:'lang',ph:'en'}], body: true },
-          { method: 'GET', path: '/api/novaai/models', desc: 'List available AI models', inputs: [] },
-          { method: 'POST', path: '/api/novaai/vision', desc: 'Describe image content in detail', inputs: [{name:'imageUrl',ph:'https://example.com/photo.jpg'}], body: true },
-          { method: 'POST', path: '/api/novaai/rewrite', desc: 'Rewrite text in different tones', inputs: [{name:'text',ph:'I am very angry about this issue'},{name:'tone',ph:'professional (or: casual, formal, funny, poetic)',type:'select',options:['professional','casual','formal','funny','poetic','academic','gen-z']}], body: true },
-          { method: 'POST', path: '/api/novaai/story', desc: 'AI story/fiction generator', inputs: [{name:'prompt',ph:'A dragon who learns to code'},{name:'genre',ph:'fantasy',type:'select',options:['fantasy','scifi','horror','romance','comedy','mystery','adventure']}], body: true },
-        ]
-      },
-      {
-        id: 'downloader', name: 'Downloaders', icon: 'ri-download-2-line', color: '#22c55e',
-        endpoints: [
-          { method: 'GET', path: '/api/downloader/youtube', desc: 'YouTube video download', inputs: [{name:'url',ph:'https://youtube.com/watch?v=...'}] },
-          { method: 'GET', path: '/api/downloader/youtube/audio', desc: 'YouTube audio (MP3)', inputs: [{name:'url',ph:'https://youtube.com/watch?v=...'}] },
-          { method: 'GET', path: '/api/downloader/youtube/search', desc: 'YouTube search', inputs: [{name:'q',ph:'funny cats'},{name:'limit',ph:'5'}] },
-          { method: 'GET', path: '/api/downloader/tiktok', desc: 'TikTok no watermark', inputs: [{name:'url',ph:'https://tiktok.com/@user/video/...'}] },
-          { method: 'GET', path: '/api/downloader/instagram', desc: 'Instagram media', inputs: [{name:'url',ph:'https://instagram.com/p/...'}] },
-          { method: 'GET', path: '/api/downloader/facebook', desc: 'Facebook video', inputs: [{name:'url',ph:'https://facebook.com/...'}] },
-          { method: 'GET', path: '/api/downloader/twitter', desc: 'Twitter/X video', inputs: [{name:'url',ph:'https://x.com/user/status/...'}] },
-          { method: 'GET', path: '/api/downloader/pinterest', desc: 'Pinterest media', inputs: [{name:'url',ph:'https://pinterest.com/pin/...'}] },
-          { method: 'GET', path: '/api/downloader/spotify', desc: 'Spotify track info', inputs: [{name:'url',ph:'https://open.spotify.com/track/...'}] },
-        ]
-      },
-      {
-        id: 'ai', name: 'AI', icon: 'ri-brain-line', color: '#6366f1',
-        endpoints: [
-          { method: 'POST', path: '/api/ai/chat', desc: 'AI chat (GPT fallback)', inputs: [{name:'message',ph:'Tell me a joke'}], body: true },
-          { method: 'GET', path: '/api/ai/imagine', desc: 'AI image generation', inputs: [{name:'prompt',ph:'a cat riding a skateboard'},{name:'width',ph:'512'},{name:'height',ph:'512'}] },
-          { method: 'GET', path: '/api/ai/translate', desc: 'Translate text', inputs: [{name:'text',ph:'Hello world'},{name:'to',ph:'es'},{name:'from',ph:'en'}] },
-          { method: 'POST', path: '/api/ai/summarize', desc: 'Summarize text', inputs: [{name:'text',ph:'Paste a long paragraph here...'}], body: true },
-          { method: 'POST', path: '/api/ai/sentiment', desc: 'Sentiment analysis', inputs: [{name:'text',ph:'I love this amazing product!'}], body: true },
-          { method: 'GET', path: '/api/ai/lyrics', desc: 'Song lyrics', inputs: [{name:'song',ph:'Bohemian Rhapsody'},{name:'artist',ph:'Queen'}] },
-          { method: 'GET', path: '/api/ai/trivia', desc: 'Trivia questions', inputs: [{name:'difficulty',ph:'easy'},{name:'amount',ph:'3'}] },
-          { method: 'GET', path: '/api/ai/define', desc: 'Word definition', inputs: [{name:'word',ph:'serendipity'}] },
-        ]
-      },
-      {
-        id: 'tools', name: 'Tools', icon: 'ri-tools-line', color: '#f59e0b',
-        endpoints: [
-          { method: 'GET', path: '/api/tools/qr', desc: 'QR code generator', inputs: [{name:'text',ph:'https://yourlink.com'}] },
-          { method: 'GET', path: '/api/tools/shorten', desc: 'URL shortener', inputs: [{name:'url',ph:'https://very-long-url.com/page'}] },
-          { method: 'GET', path: '/api/tools/password', desc: 'Password generator', inputs: [{name:'length',ph:'16'},{name:'symbols',ph:'true'}] },
-          { method: 'GET', path: '/api/tools/ip', desc: 'IP lookup', inputs: [{name:'ip',ph:'8.8.8.8'}] },
-          { method: 'GET', path: '/api/tools/weather', desc: 'Weather', inputs: [{name:'city',ph:'Johannesburg'}] },
-          { method: 'GET', path: '/api/tools/currency', desc: 'Currency converter', inputs: [{name:'from',ph:'USD'},{name:'to',ph:'ZAR'},{name:'amount',ph:'100'}] },
-          { method: 'GET', path: '/api/tools/joke', desc: 'Random joke', inputs: [] },
-          { method: 'GET', path: '/api/tools/quote', desc: 'Random quote', inputs: [] },
-          { method: 'GET', path: '/api/tools/wiki', desc: 'Wikipedia', inputs: [{name:'q',ph:'Artificial intelligence'}] },
-          { method: 'GET', path: '/api/tools/hash', desc: 'Hash text', inputs: [{name:'text',ph:'hello'},{name:'algo',ph:'sha256'}] },
-          { method: 'GET', path: '/api/tools/color', desc: 'Color info', inputs: [{name:'hex',ph:'6366f1'}] },
-          { method: 'GET', path: '/api/tools/convert', desc: 'Unit convert', inputs: [{name:'value',ph:'100'},{name:'from',ph:'km'},{name:'to',ph:'miles'}] },
-        ]
-      },
-      {
-        id: 'whatsapp', name: 'WhatsApp', icon: 'ri-whatsapp-line', color: '#22c55e',
-        endpoints: [
-          { method: 'POST', path: '/api/whatsapp/sticker', desc: 'Image to sticker (WebP)', inputs: [{name:'imageUrl',ph:'https://example.com/image.png'}], body: true },
-          { method: 'GET', path: '/api/whatsapp/text2img', desc: 'Text to image', inputs: [{name:'text',ph:'Hello World!'},{name:'bg',ph:'1a1a2e'},{name:'color',ph:'ffffff'}] },
-          { method: 'GET', path: '/api/whatsapp/welcome', desc: 'Welcome card', inputs: [{name:'name',ph:'John'},{name:'group',ph:'Cool Group'}] },
-          { method: 'GET', path: '/api/whatsapp/goodbye', desc: 'Goodbye card', inputs: [{name:'name',ph:'John'},{name:'group',ph:'Cool Group'}] },
-          { method: 'GET', path: '/api/whatsapp/rankcard', desc: 'Rank card', inputs: [{name:'name',ph:'Player1'},{name:'level',ph:'5'},{name:'xp',ph:'75'},{name:'maxXp',ph:'100'}] },
-        ]
-      },
-      {
-        id: 'search', name: 'Search', icon: 'ri-search-line', color: '#06b6d4',
-        endpoints: [
-          { method: 'GET', path: '/api/search/google', desc: 'Web search', inputs: [{name:'q',ph:'latest tech news'}] },
-          { method: 'GET', path: '/api/search/news', desc: 'News search', inputs: [{name:'q',ph:'AI technology'}] },
-          { method: 'GET', path: '/api/search/gif', desc: 'GIF search', inputs: [{name:'q',ph:'celebration'}] },
-          { method: 'GET', path: '/api/search/images', desc: 'Image search', inputs: [{name:'q',ph:'beautiful sunset'}] },
-          { method: 'GET', path: '/api/search/urban', desc: 'Urban Dictionary', inputs: [{name:'term',ph:'yeet'}] },
-        ]
-      },
-      {
-        id: 'media', name: 'Media', icon: 'ri-movie-2-line', color: '#a855f7',
-        endpoints: [
-          { method: 'GET', path: '/api/media/meme', desc: 'Random meme', inputs: [] },
-          { method: 'GET', path: '/api/media/waifu', desc: 'Anime image', inputs: [{name:'type',ph:'waifu'}] },
-          { method: 'GET', path: '/api/media/cat', desc: 'Random cat', inputs: [] },
-          { method: 'GET', path: '/api/media/dog', desc: 'Random dog', inputs: [] },
-          { method: 'GET', path: '/api/media/pokemon', desc: 'Pokemon info', inputs: [{name:'name',ph:'pikachu'}] },
-          { method: 'GET', path: '/api/media/anime', desc: 'Anime search', inputs: [{name:'q',ph:'Naruto'}] },
-          { method: 'GET', path: '/api/media/minecraft', desc: 'Minecraft player', inputs: [{name:'username',ph:'Notch'}] },
-        ]
-      }
-    ];
+// Build content
+const content = document.getElementById('content');
+SECTIONS.forEach((s,i) => {
+  let html = `<div class="section${i===0?' active':''}" id="sec-${s.id}">
+    <div class="section-title"><i class="fas ${s.icon}"></i> ${s.label}</div>
+    <div class="section-desc">${s.desc}</div>`;
+  s.endpoints.forEach((ep,j) => {
+    const id = `${s.id}-${j}`;
+    html += `<div class="card">
+      <div class="card-head">
+        <span class="badge ${ep.m.toLowerCase()}">${ep.m}</span>
+        <span class="card-path">${ep.p}</span>
+      </div>
+      <div class="card-desc">${ep.d}</div>`;
+    if(ep.inputs?.length){
+      html += `<div class="inputs">`;
+      ep.inputs.forEach(inp => {
+        if(inp.type==='textarea') html += `<textarea id="in-${id}-${inp.n}" placeholder="${inp.ph}" rows="2"></textarea>`;
+        else html += `<input id="in-${id}-${inp.n}" placeholder="${inp.ph}">`;
+      });
+      html += `</div>`;
+    }
+    html += `<button class="btn" onclick="test('${id}',${j},'${s.id}')">Test →</button>
+      <div class="response" id="res-${id}">
+        <div class="res-head"><span id="stat-${id}"></span><span id="time-${id}"></span></div>
+        <div class="res-body" id="body-${id}"></div>
+      </div>
+    </div>`;
+  });
+  html += `</div>`;
+  content.innerHTML += html;
+});
 
-    // Build sidebar
-    const sidebar = document.getElementById('sidebar');
-    categories.forEach((cat, i) => {
-      sidebar.innerHTML += `<div class="sidebar-section">${i===0?'':''}${cat.name}</div>`;
-      sidebar.innerHTML += `<div class="sidebar-item ${i===0?'active':''}" data-cat="${cat.id}" onclick="showCategory('${cat.id}')">
-        <i class="${cat.icon}" style="color:${cat.color}"></i> ${cat.name}
-        ${cat.id==='novaai'?'<span class="novaai-badge">NEW</span>':''}
-      </div>`;
-    });
+function switchSection(id){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('sec-'+id).classList.add('active');
+  const idx = SECTIONS.findIndex(s=>s.id===id);
+  nav.children[idx].classList.add('active');
+}
 
-    // Build content
-    const content = document.getElementById('content');
-    categories.forEach((cat, i) => {
-      let html = `<div class="section ${i===0?'active':''}" id="section-${cat.id}">
-        <div class="section-title"><i class="${cat.icon}" style="color:${cat.color}"></i> ${cat.name} ${cat.id==='novaai'?'<span class="novaai-badge">ADVANCED</span>':''}</div>
-        <div class="section-desc">${cat.endpoints.length} endpoints available</div>`;
-      cat.endpoints.forEach((ep, j) => {
-        const id = `${cat.id}-${j}`;
-        html += `<div class="tester">
-          <div class="tester-header">
-            <span class="method-badge ${ep.method.toLowerCase()}">${ep.method}</span>
-            <span class="tester-path">${ep.path}</span>
-          </div>
-          <div class="tester-desc">${ep.desc}</div>
-          <div class="input-row">`;
+async function test(id, epIdx, secId){
+  const sec = SECTIONS.find(s=>s.id===secId);
+  const ep = sec.endpoints[epIdx];
+  const resEl = document.getElementById('res-'+id);
+  const bodyEl = document.getElementById('body-'+id);
+  const statEl = document.getElementById('stat-'+id);
+  const timeEl = document.getElementById('time-'+id);
+
+  resEl.classList.add('show');
+  bodyEl.textContent = 'Loading...';
+  statEl.textContent = '...';
+  statEl.className = '';
+
+  const start = Date.now();
+  try {
+    let url = BASE + ep.p;
+    let opts = {};
+    if(ep.m === 'GET'){
+      if(ep.inputs){
+        const params = new URLSearchParams();
         ep.inputs.forEach(inp => {
-          if (inp.type === 'select') {
-            html += `<select id="inp-${id}-${inp.name}">`;
-            inp.options.forEach(opt => { html += `<option value="${opt}">${opt}</option>`; });
-            html += `</select>`;
-          } else {
-            html += `<input type="text" id="inp-${id}-${inp.name}" placeholder="${inp.ph}">`;
-          }
+          const v = document.getElementById('in-'+id+'-'+inp.n)?.value;
+          if(v) params.set(inp.n, v);
         });
-        html += `<button class="btn-test" onclick="testEndpoint('${id}', '${ep.method}', '${ep.path}', ${JSON.stringify(ep.inputs.map(i=>i.name))}, ${!!ep.body})">
-            <i class="ri-play-fill"></i> Test
-          </button></div>
-          <div class="response" id="resp-${id}">
-            <div class="response-header">
-              <span class="response-status" id="status-${id}"></span>
-              <span class="response-time" id="time-${id}"></span>
-            </div>
-            <pre class="response-body" id="body-${id}"></pre>
-          </div>
-        </div>`;
-      });
-      html += '</div>';
-      content.innerHTML += html;
-    });
-
-    function showCategory(id) {
-      document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
-      document.querySelector(`[data-cat="${id}"]`).classList.add('active');
-      document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
-      document.getElementById(`section-${id}`).classList.add('active');
-    }
-
-    async function testEndpoint(id, method, path, params, isBody) {
-      const btn = event.target.closest('.btn-test');
-      btn.disabled = true;
-      btn.innerHTML = '<i class="ri-loader-4-line"></i> Loading...';
-
-      const values = {};
-      params.forEach(p => {
-        const el = document.getElementById(`inp-${id}-${p}`);
-        if (el && el.value) values[p] = el.value;
-      });
-
-      const respEl = document.getElementById(`resp-${id}`);
-      const statusEl = document.getElementById(`status-${id}`);
-      const timeEl = document.getElementById(`time-${id}`);
-      const bodyEl = document.getElementById(`body-${id}`);
-
-      const start = Date.now();
-      try {
-        let response;
-        if (method === 'GET') {
-          const qs = new URLSearchParams(values).toString();
-          response = await fetch(`${BASE}${path}${qs ? '?' + qs : ''}`);
-        } else {
-          response = await fetch(`${BASE}${path}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(values)
-          });
-        }
-        const elapsed = Date.now() - start;
-        const data = await response.json();
-
-        respEl.classList.add('show');
-        statusEl.textContent = `${response.status} ${response.statusText}`;
-        statusEl.className = 'response-status ' + (response.status < 300 ? 's2xx' : response.status < 500 ? 's4xx' : 's5xx');
-        timeEl.textContent = `${elapsed}ms`;
-        bodyEl.textContent = JSON.stringify(data, null, 2);
-      } catch (e) {
-        respEl.classList.add('show');
-        statusEl.textContent = 'ERROR';
-        statusEl.className = 'response-status s5xx';
-        timeEl.textContent = `${Date.now()-start}ms`;
-        bodyEl.textContent = e.message;
+        const qs = params.toString();
+        if(qs) url += '?' + qs;
       }
-      btn.disabled = false;
-      btn.innerHTML = '<i class="ri-play-fill"></i> Test';
+    } else {
+      opts.method = 'POST';
+      opts.headers = {'Content-Type':'application/json'};
+      const body = {};
+      ep.inputs?.forEach(inp => {
+        const v = document.getElementById('in-'+id+'-'+inp.n)?.value;
+        if(v) body[inp.n] = v;
+      });
+      opts.body = JSON.stringify(body);
     }
+    const r = await fetch(url, opts);
+    const ms = Date.now() - start;
+    const data = await r.json();
+    statEl.textContent = r.status + ' ' + (r.ok?'OK':'Error');
+    statEl.className = r.ok ? 'status-ok' : 'status-err';
+    timeEl.textContent = ms + 'ms';
+    bodyEl.textContent = JSON.stringify(data, null, 2);
+  } catch(e){
+    statEl.textContent = 'Error';
+    statEl.className = 'status-err';
+    timeEl.textContent = (Date.now()-start)+'ms';
+    bodyEl.textContent = e.message;
+  }
+}
+
+// Uptime
+fetch(BASE+'/health').then(r=>r.json()).then(d=>{
+  document.getElementById('uptime').textContent='⏱ Up '+Math.floor(d.uptime/60)+'m';
+}).catch(()=>{});
   </script>
 </body>
 </html>
