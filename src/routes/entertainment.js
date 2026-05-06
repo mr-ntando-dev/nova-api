@@ -7,12 +7,13 @@ const err = (res, msg, code = 400) => res.status(code).json({ success: false, er
 
 // ─── Movie/TV Search (OMDB free tier) ─────────────────────────────────────────
 router.get('/movie', async (req, res) => {
-  const { title, year, type = 'movie' } = req.query;
-  if (!title) return err(res, 'Missing ?title=');
+  const { title, q, year, type = 'movie' } = req.query;
+  const searchTitle = title || q; // accept both ?title= and ?q= for convenience
+  if (!searchTitle) return err(res, 'Missing ?title= (or ?q=)');
   try {
     // Using free OMDB key (limited) or fallback
     const key = process.env.OMDB_API_KEY || '3e362930';
-    const r = await axios.get(`https://www.omdbapi.com/?t=${encodeURIComponent(title)}&y=${year || ''}&type=${type}&apikey=${key}`, { timeout: 10000 });
+    const r = await axios.get(`https://www.omdbapi.com/?t=${encodeURIComponent(searchTitle)}&y=${year || ''}&type=${type}&apikey=${key}`, { timeout: 10000 });
     if (r.data.Response === 'False') return err(res, r.data.Error || 'Not found', 404);
     ok(res, {
       title: r.data.Title,

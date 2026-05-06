@@ -268,6 +268,41 @@ router.post('/eli5', async (req, res) => {
   }
 });
 
+// ─── Fallback banks (used when AI provider rate-limits) ───────────────────────
+const COMPLIMENTS = [
+  'You have the rare gift of making everyone around you feel instantly at ease — that warmth is genuinely priceless.',
+  'The way you approach challenges with creativity and calm is something most people spend a lifetime trying to master.',
+  'Your curiosity is contagious. You make the people around you want to learn more, be more, and try harder.',
+  'There is a quiet strength in you that shows up exactly when it matters most — and people notice it even when you don\'t.',
+  'You have an incredible ability to find the interesting angle in any situation. That\'s a rare kind of intelligence.',
+  'The world is measurably better because of the specific kindness you bring to it every single day.',
+  'You combine confidence and humility in a way that most people can only aspire to — it makes you magnetic.',
+  'Your sense of humor is perfectly calibrated: sharp enough to be funny, kind enough to never leave a mark.'
+];
+
+const PICKUP_LINES = [
+  'Are you a pull request? Because I\'ve been reviewing you all day and I still can\'t find a single flaw.',
+  'Do you believe in love at first API call, or should I send a second request?',
+  'Are you a Wi-Fi signal? Because I\'m feeling a strong connection.',
+  'Is your name Google? Because you have everything I\'ve been searching for.',
+  'Are you a keyboard? Because you\'re just my type.',
+  'Do you have a map? I keep getting lost in your eyes.',
+  'Are you made of copper and tellurium? Because you\'re CuTe.',
+  'Do you like Star Wars? Because Yoda one for me.',
+  'Is your name JavaScript? Because you make everything more dynamic.',
+  'Are you a 90-degree angle? Because you\'re looking right to me.'
+];
+
+const WYR_QUESTIONS = [
+  { question: 'Would you rather know every language fluently OR be able to play every musical instrument perfectly?', optionA: 'Speak every language', optionB: 'Play every instrument' },
+  { question: 'Would you rather be able to pause time OR rewind time (but not fast-forward)?', optionA: 'Pause time', optionB: 'Rewind time' },
+  { question: 'Would you rather have an extra hour every day OR never need to sleep?', optionA: 'Extra hour daily', optionB: 'No sleep needed' },
+  { question: 'Would you rather be the funniest person in the room OR the most intelligent person in the room?', optionA: 'Funniest person', optionB: 'Most intelligent' },
+  { question: 'Would you rather know what people truly think of you OR never worry about what people think?', optionA: 'Know true thoughts', optionB: 'Stop caring' },
+  { question: 'Would you rather be famous now but forgotten in 50 years OR unknown now but legendary after you\'re gone?', optionA: 'Famous now', optionB: 'Legendary posthumously' },
+  { question: 'Would you rather have unlimited money but have to work 80h/week OR live modestly with 20h/week max?', optionA: 'Rich workaholic', optionB: 'Modest and free' }
+];
+
 // ─── AI Compliment Generator ──────────────────────────────────────────────────
 router.get('/compliment', async (req, res) => {
   const { name = 'friend' } = req.query;
@@ -278,7 +313,9 @@ router.get('/compliment', async (req, res) => {
     );
     ok(res, { name, compliment: result.reply, provider: result.provider });
   } catch (e) {
-    err(res, e.message, 503);
+    // Fallback to local bank when AI is rate-limited
+    const compliment = COMPLIMENTS[Math.floor(Math.random() * COMPLIMENTS.length)];
+    ok(res, { name, compliment: `${name}, ${compliment.charAt(0).toLowerCase() + compliment.slice(1)}`, provider: 'local-fallback' });
   }
 });
 
@@ -292,7 +329,8 @@ router.get('/pickup', async (req, res) => {
     );
     ok(res, { topic, line: result.reply, provider: result.provider });
   } catch (e) {
-    err(res, e.message, 503);
+    const line = PICKUP_LINES[Math.floor(Math.random() * PICKUP_LINES.length)];
+    ok(res, { topic, line, provider: 'local-fallback' });
   }
 });
 
@@ -305,7 +343,8 @@ router.get('/wyr', async (req, res) => {
     );
     ok(res, { question: result.reply, provider: result.provider });
   } catch (e) {
-    err(res, e.message, 503);
+    const item = WYR_QUESTIONS[Math.floor(Math.random() * WYR_QUESTIONS.length)];
+    ok(res, { question: item.question, option_a: item.optionA, option_b: item.optionB, provider: 'local-fallback' });
   }
 });
 

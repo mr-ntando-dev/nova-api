@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NovaSpark API v3.0</title>
+  <title>NovaSpark API v3.1</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
   <style>
@@ -48,10 +48,10 @@
 <body>
   <div class="header">
     <h1>⚡ NovaSpark API</h1>
-    <p>All-in-One API for WhatsApp Bots — 75+ Endpoints, Zero Config</p>
+    <p>All-in-One API for WhatsApp Bots — 82+ Endpoints, Zero Config</p>
     <div class="stats">
-      <div class="stat">🚀 v3.0.0</div>
-      <div class="stat">📡 75+ Endpoints</div>
+      <div class="stat">🚀 v3.1.0</div>
+      <div class="stat">📡 82+ Endpoints</div>
       <div class="stat">🆓 Free & Open Source</div>
       <div class="stat" id="uptime">⏱ Loading...</div>
     </div>
@@ -156,6 +156,16 @@ const SECTIONS = [
       {m:'GET',p:'/api/whatsapp/welcome',d:'Welcome card',inputs:[{n:'name',ph:'John'},{n:'group',ph:'Cool Group'}]},
       {m:'GET',p:'/api/whatsapp/goodbye',d:'Goodbye card',inputs:[{n:'name',ph:'John'},{n:'group',ph:'Cool Group'}]},
       {m:'GET',p:'/api/whatsapp/rankcard',d:'Rank card',inputs:[{n:'name',ph:'Player1'},{n:'level',ph:'5'},{n:'xp',ph:'750'},{n:'maxXp',ph:'1000'}]},
+    ]},
+  { id:'shazam', icon:'fa-music', label:'Shazam', desc:'Song identification, search, lyrics, artist info & trending charts',
+    endpoints:[
+      {m:'GET',p:'/api/shazam/identify',d:'Identify song from audio URL',inputs:[{n:'url',ph:'https://example.com/audio.mp3'}]},
+      {m:'GET',p:'/api/shazam/youtube',d:'Identify song from YouTube URL',inputs:[{n:'url',ph:'https://youtube.com/watch?v=...'}]},
+      {m:'GET',p:'/api/shazam/search',d:'Search song by title/artist',inputs:[{n:'q',ph:'Blinding Lights'},{n:'limit',ph:'5'}]},
+      {m:'GET',p:'/api/shazam/details',d:'Song details by MusicBrainz ID',inputs:[{n:'mbid',ph:'recording-uuid-here'}]},
+      {m:'GET',p:'/api/shazam/artist',d:'Artist info',inputs:[{n:'name',ph:'The Weeknd'}]},
+      {m:'GET',p:'/api/shazam/trending',d:'Trending / chart songs',inputs:[{n:'limit',ph:'10'},{n:'country',ph:'US (optional)'}]},
+      {m:'GET',p:'/api/shazam/lyrics',d:'Get lyrics',inputs:[{n:'title',ph:'Blinding Lights'},{n:'artist',ph:'The Weeknd'}]},
     ]},
 ];
 

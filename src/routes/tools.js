@@ -134,11 +134,23 @@ router.get('/joke', async (req, res) => {
 router.get('/quote', async (req, res) => {
   const { category } = req.query;
   try {
-    const url = category ? `https://api.quotable.io/random?tags=${category}` : 'https://api.quotable.io/random';
+    // zenquotes.io — free, no key, actively maintained
+    const url = category
+      ? `https://zenquotes.io/api/quotes/keyword/${encodeURIComponent(category)}`
+      : 'https://zenquotes.io/api/random';
     const r = await axios.get(url, { timeout: 10000 });
-    ok(res, { quote: r.data.content, author: r.data.author, tags: r.data.tags, length: r.data.length });
+    const q = Array.isArray(r.data) ? r.data[0] : r.data;
+    ok(res, { quote: q.q, author: q.a, category: category || null });
   } catch (e) {
-    err(res, e.message, 500);
+    // Secondary fallback: type.fit (static CDN, always up)
+    try {
+      const r2 = await axios.get('https://type.fit/api/quotes', { timeout: 10000 });
+      const quotes = r2.data;
+      const q = quotes[Math.floor(Math.random() * quotes.length)];
+      ok(res, { quote: q.text, author: q.author || 'Unknown', provider: 'type.fit' });
+    } catch (e2) {
+      err(res, 'Quote service unavailable', 500);
+    }
   }
 });
 
@@ -147,16 +159,37 @@ router.get('/wiki', async (req, res) => {
   const { q, lang = 'en' } = req.query;
   if (!q) return err(res, 'Missing ?q=');
   try {
-    const r = await axios.get(`https://${lang}.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(q)}&format=json&srlimit=5`, { timeout: 10000 });
-    const results = r.data.query.search.map(s => ({
+    // Step 1: search via action API (proper User-Agent to avoid 403)
+    const searchRes = await axios.get(`https://${lang}.wikipedia.org/w/api.php`, {
+      params: { action: 'query', list: 'search', srsearch: q, format: 'json', srlimit: 5 },
+      headers: { 'User-Agent': 'NovaSpark-API/3.1 (github.com/mr-ntando-dev/nova-api)' },
+      timeout: 10000
+    });
+    const results = (searchRes.data.query?.search || []).map(s => ({
       title: s.title,
       snippet: s.snippet.replace(/<[^>]*>/g, ''),
       url: `https://${lang}.wikipedia.org/wiki/${encodeURIComponent(s.title.replace(/ /g, '_'))}`
     }));
     if (!results.length) return err(res, 'No results found', 404);
-    // Get summary of top result
-    const summary = await axios.get(`https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(results[0].title.replace(/ /g, '_'))}`, { timeout: 10000 });
-    ok(res, { top_result: { title: summary.data.title, extract: summary.data.extract, url: summary.data.content_urls?.desktop?.page, image: summary.data.thumbnail?.source }, all_results: results });
+    // Step 2: fetch summary of top result
+    const summaryRes = await axios.get(
+      `https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(results[0].title.replace(/ /g, '_'))}`,
+      {
+        headers: { 'User-Agent': 'NovaSpark-API/3.1 (github.com/mr-ntando-dev/nova-api)' },
+        timeout: 10000
+      }
+    );
+    const d = summaryRes.data;
+    ok(res, {
+      top_result: {
+        title: d.title,
+        description: d.description,
+        extract: d.extract,
+        url: d.content_urls?.desktop?.page,
+        image: d.thumbnail?.source || null
+      },
+      all_results: results
+    });
   } catch (e) {
     err(res, e.message, 500);
   }

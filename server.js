@@ -48,6 +48,7 @@ app.use('/api/media',        require('./src/routes/media'));
 app.use('/api/entertainment', require('./src/routes/entertainment'));
 app.use('/api/crypto',       require('./src/routes/crypto'));
 app.use('/api/dev',          require('./src/routes/dev'));
+app.use('/api/shazam',       require('./src/routes/shazam'));
 
 // ─── Health ───────────────────────────────────────────────────────────────────
 app.get('/health', (req, res) => {
@@ -55,8 +56,8 @@ app.get('/health', (req, res) => {
     status: 'ok',
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
-    version: '3.0.0',
-    endpoints_count: 75
+    version: '3.1.0',
+    endpoints_count: 82
   });
 });
 
@@ -64,11 +65,11 @@ app.get('/health', (req, res) => {
 app.get('/api', (req, res) => {
   res.json({
     name: 'NovaSpark All-in-One API',
-    version: '3.0.0',
+    version: '3.1.0',
     status: 'running',
     author: 'NovaSpark Dev',
     dashboard: '/',
-    total_endpoints: 75,
+    total_endpoints: 82,
     categories: {
       novaai: '/api/novaai - Advanced AI with personas, code gen, vision, TTS',
       downloader: '/api/downloader - YouTube, TikTok, Instagram, Facebook, Twitter, Pinterest',
@@ -79,7 +80,8 @@ app.get('/api', (req, res) => {
       media: '/api/media - Memes, anime, pokemon, cats, dogs',
       entertainment: '/api/entertainment - Movies, books, horoscope, riddles, facts',
       crypto: '/api/crypto - Prices, trending, exchanges, NFTs',
-      dev: '/api/dev - GitHub user, npm package, HTTP status, regex tester, JSON formatter'
+      dev: '/api/dev - GitHub user, npm package, HTTP status, regex tester, JSON formatter',
+      shazam: '/api/shazam - Song identification, search, lyrics, artist info, trending charts'
     }
   });
 });
