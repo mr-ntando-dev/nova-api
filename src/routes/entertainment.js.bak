@@ -5,60 +5,33 @@ const axios  = require('axios');
 const ok  = (res, data) => res.json({ success: true, ...data });
 const err = (res, msg, code = 400) => res.status(code).json({ success: false, error: msg });
 
-// ─── Movie/TV Search (TMDB + OMDB fallback) ───────────────────────────────────
+// ─── Movie/TV Search (OMDB free tier) ─────────────────────────────────────────
 router.get('/movie', async (req, res) => {
   const { title, q, year, type = 'movie' } = req.query;
-  const searchTitle = title || q;
+  const searchTitle = title || q; // accept both ?title= and ?q= for convenience
   if (!searchTitle) return err(res, 'Missing ?title= (or ?q=)');
   try {
-    // Primary: TMDB (free demo key, very reliable)
-    const tmdbKey = process.env.TMDB_API_KEY || '8265bd1679663a7ea12ac168da84d2e8';
-    const mediaType = type === 'series' ? 'tv' : 'movie';
-    const searchRes = await axios.get(
-      `https://api.themoviedb.org/3/search/${mediaType}`,
-      { params: { api_key: tmdbKey, query: searchTitle, year: year || undefined, include_adult: false }, timeout: 10000 }
-    );
-    const results = searchRes.data.results;
-    if (!results || !results.length) return err(res, 'Not found', 404);
-    const m = results[0];
-    // Fetch full details
-    const detailRes = await axios.get(
-      `https://api.themoviedb.org/3/${mediaType}/${m.id}`,
-      { params: { api_key: tmdbKey, append_to_response: 'credits' }, timeout: 10000 }
-    );
-    const d = detailRes.data;
-    const directors = d.credits?.crew?.filter(c => c.job === 'Director').map(c => c.name).join(', ') || 'N/A';
-    const cast = d.credits?.cast?.slice(0, 5).map(c => c.name).join(', ') || 'N/A';
+    // Using free OMDB key (limited) or fallback
+    const key = process.env.OMDB_API_KEY || '3e362930';
+    const r = await axios.get(`https://www.omdbapi.com/?t=${encodeURIComponent(searchTitle)}&y=${year || ''}&type=${type}&apikey=${key}`, { timeout: 10000 });
+    if (r.data.Response === 'False') return err(res, r.data.Error || 'Not found', 404);
     ok(res, {
-      title: d.title || d.name,
-      year: (d.release_date || d.first_air_date || '').slice(0, 4),
-      rated: d.adult ? 'R' : 'PG-13',
-      released: d.release_date || d.first_air_date,
-      runtime: d.runtime ? `${d.runtime} min` : (d.episode_run_time?.[0] ? `${d.episode_run_time[0]} min/ep` : 'N/A'),
-      genre: d.genres?.map(g => g.name).join(', ') || 'N/A',
-      director: directors,
-      actors: cast,
-      plot: d.overview,
-      poster: d.poster_path ? `https://image.tmdb.org/t/p/w500${d.poster_path}` : null,
-      backdrop: d.backdrop_path ? `https://image.tmdb.org/t/p/w780${d.backdrop_path}` : null,
-      imdb_rating: d.vote_average ? d.vote_average.toFixed(1) + '/10' : 'N/A',
-      tmdb_id: d.id,
-      type: mediaType,
-      status: d.status,
-      language: d.original_language,
-      provider: 'tmdb'
+      title: r.data.Title,
+      year: r.data.Year,
+      rated: r.data.Rated,
+      released: r.data.Released,
+      runtime: r.data.Runtime,
+      genre: r.data.Genre,
+      director: r.data.Director,
+      actors: r.data.Actors,
+      plot: r.data.Plot,
+      poster: r.data.Poster,
+      imdb_rating: r.data.imdbRating,
+      imdb_id: r.data.imdbID,
+      type: r.data.Type
     });
   } catch (e) {
-    // Fallback: OMDB (if env key provided)
-    try {
-      const omdbKey = process.env.OMDB_API_KEY;
-      if (!omdbKey) return err(res, 'Movie not found', 404);
-      const r = await axios.get(`https://www.omdbapi.com/?t=${encodeURIComponent(searchTitle)}&y=${year || ''}&type=${type}&apikey=${omdbKey}`, { timeout: 10000 });
-      if (r.data.Response === 'False') return err(res, r.data.Error || 'Not found', 404);
-      ok(res, { title: r.data.Title, year: r.data.Year, genre: r.data.Genre, director: r.data.Director, actors: r.data.Actors, plot: r.data.Plot, poster: r.data.Poster, imdb_rating: r.data.imdbRating, provider: 'omdb' });
-    } catch (e2) {
-      err(res, e.message, 500);
-    }
+    err(res, e.message, 500);
   }
 });
 

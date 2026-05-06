@@ -1,7 +1,10 @@
 'use strict';
 const router = require('express').Router();
 const axios  = require('axios');
-const crypto = require('crypto');
+const https  = require('https');
+
+// Render's outbound TLS can be finicky with some hosts — use a permissive agent as fallback
+const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 
 const ok  = (res, data) => res.json({ success: true, ...data });
 const err = (res, msg, code = 400) => res.status(code).json({ success: false, error: msg });
@@ -107,7 +110,7 @@ router.get('/search', async (req, res) => {
         fmt: 'json',
         limit: parseInt(limit)
       },
-      headers: { 'User-Agent': 'NovaSpark-API/3.0 (novaspark-api@example.com)' },
+      httpsAgent, headers: { 'User-Agent': 'NovaSpark-API/3.1 (novaspark-api@example.com)' },
       timeout: 15000
     });
     const recordings = mbRes.data.recordings || [];
@@ -141,7 +144,7 @@ router.get('/details', async (req, res) => {
   try {
     const r = await axios.get(`https://musicbrainz.org/ws/2/recording/${mbid}`, {
       params: { fmt: 'json', inc: 'artists+releases+genres+tags+ratings' },
-      headers: { 'User-Agent': 'NovaSpark-API/3.0 (novaspark-api@example.com)' },
+      httpsAgent, headers: { 'User-Agent': 'NovaSpark-API/3.1 (novaspark-api@example.com)' },
       timeout: 15000
     });
     ok(res, {
@@ -180,21 +183,21 @@ router.get('/artist', async (req, res) => {
     if (mbid) {
       const r = await axios.get(`https://musicbrainz.org/ws/2/artist/${mbid}`, {
         params: { fmt: 'json', inc: 'url-rels+genres+tags+ratings' },
-        headers: { 'User-Agent': 'NovaSpark-API/3.0 (novaspark-api@example.com)' },
+        httpsAgent, headers: { 'User-Agent': 'NovaSpark-API/3.1 (novaspark-api@example.com)' },
         timeout: 15000
       });
       artistData = r.data;
     } else {
       const r = await axios.get('https://musicbrainz.org/ws/2/artist', {
         params: { query: `"${name}"`, fmt: 'json', limit: 1 },
-        headers: { 'User-Agent': 'NovaSpark-API/3.0 (novaspark-api@example.com)' },
+        httpsAgent, headers: { 'User-Agent': 'NovaSpark-API/3.1 (novaspark-api@example.com)' },
         timeout: 15000
       });
       if (!r.data.artists?.length) return err(res, 'Artist not found', 404);
       const topArtist = r.data.artists[0];
       const r2 = await axios.get(`https://musicbrainz.org/ws/2/artist/${topArtist.id}`, {
         params: { fmt: 'json', inc: 'url-rels+genres+tags+ratings' },
-        headers: { 'User-Agent': 'NovaSpark-API/3.0 (novaspark-api@example.com)' },
+        httpsAgent, headers: { 'User-Agent': 'NovaSpark-API/3.1 (novaspark-api@example.com)' },
         timeout: 15000
       });
       artistData = r2.data;
