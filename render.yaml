@@ -2,7 +2,7 @@ services:
   - type: web
     name: nova-api
     runtime: node
-    buildCommand: npm install --production
+    buildCommand: apt-get install -y python3 python3-pip && ln -sf /usr/bin/python3 /usr/local/bin/python && npm install --production
     startCommand: node server.js
     plan: free
     healthCheckPath: /health

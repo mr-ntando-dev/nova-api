@@ -3,79 +3,54 @@ const router = require('express').Router();
 const axios = require('axios');
 const ytSearch = require('yt-search');
 
+// yt-dlp-exec: reliable YouTube extraction via the yt-dlp binary
+let ytDlp;
+try { ytDlp = require('yt-dlp-exec'); } catch(e) { ytDlp = null; }
+
 const ok  = (res, data) => res.json({ success: true, ...data });
 const err = (res, msg, code = 400) => res.status(code).json({ success: false, error: msg });
 
-// ─── YouTube Video Info (using Invidious public instances) ────────────────────
+// Helper: extract YouTube video ID from any URL format
+function extractVideoId(url) {
+  const m = url.match(/(?:v=|youtu\.be\/|\/shorts\/|\/embed\/)([a-zA-Z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
+
+// ─── YouTube Video Info ───────────────────────────────────────────────────────
 router.get('/youtube', async (req, res) => {
   const { url } = req.query;
   if (!url) return err(res, 'Missing ?url=');
+  const videoId = extractVideoId(url);
+  if (!videoId) return err(res, 'Invalid YouTube URL');
   try {
-    // Extract video ID
-    const match = url.match(/(?:v=|youtu\.be\/|\/shorts\/|\/embed\/)([a-zA-Z0-9_-]{11})/);
-    if (!match) return err(res, 'Invalid YouTube URL');
-    const videoId = match[1];
-
-    // Try cobalt.tools API (free, reliable)
-    try {
-      const r = await axios.post('https://api.cobalt.tools/api/json', {
-        url: `https://www.youtube.com/watch?v=${videoId}`,
-        vCodec: 'h264',
-        vQuality: '720',
-        aFormat: 'mp3'
-      }, {
-        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-        timeout: 15000
+    if (ytDlp) {
+      const d = await ytDlp(`https://www.youtube.com/watch?v=${videoId}`, {
+        dumpSingleJson: true,
+        noWarnings: true,
+        noCheckCertificates: true,
+        format: 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best'
       });
-      if (r.data?.url) {
-        // Get video info via oembed
-        const info = await axios.get(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`, { timeout: 10000 }).catch(() => null);
-        return ok(res, {
-          title: info?.data?.title || 'Unknown',
-          author: info?.data?.author_name || 'Unknown',
-          thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
-          video_id: videoId,
-          download_url: r.data.url,
-          source: 'cobalt'
-        });
-      }
-    } catch(e) { /* fallthrough */ }
-
-    // Fallback: Invidious API
-    const instances = ['https://inv.nadeko.net', 'https://invidious.privacyredirect.com', 'https://vid.puffyan.us'];
-    for (const instance of instances) {
-      try {
-        const r = await axios.get(`${instance}/api/v1/videos/${videoId}`, { timeout: 10000 });
-        const d = r.data;
-        const formats = (d.formatStreams || []).concat(d.adaptiveFormats || []);
-        const videoFormats = formats.filter(f => f.type?.includes('video') && f.url);
-        const audioFormats = formats.filter(f => f.type?.includes('audio') && f.url);
-        return ok(res, {
-          title: d.title,
-          author: d.author,
-          duration: d.lengthSeconds + 's',
-          views: d.viewCount,
-          thumbnail: d.videoThumbnails?.[0]?.url || `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
-          video_id: videoId,
-          download_url: videoFormats[0]?.url || null,
-          formats: videoFormats.slice(0, 5).map(f => ({ quality: f.qualityLabel || f.quality, type: f.type, url: f.url })),
-          audio_url: audioFormats[0]?.url || null,
-          source: 'invidious'
-        });
-      } catch(e) { continue; }
+      const formats = (d.formats || [])
+        .filter(f => f.url && f.vcodec !== 'none')
+        .slice(-6)
+        .map(f => ({ quality: f.format_note || f.height + 'p', ext: f.ext, url: f.url, size_mb: f.filesize ? (f.filesize/1048576).toFixed(1)+'MB' : null }))
+        .reverse();
+      return ok(res, {
+        title: d.title,
+        author: d.uploader,
+        duration: d.duration + 's',
+        views: d.view_count,
+        thumbnail: d.thumbnail,
+        video_id: videoId,
+        download_url: d.url || formats[0]?.url || null,
+        audio_url: (d.formats||[]).filter(f=>f.acodec!=='none'&&f.vcodec==='none'&&f.url).slice(-1)[0]?.url || null,
+        formats: formats.slice(0, 5),
+        source: 'yt-dlp'
+      });
     }
-
-    // Last fallback: just return metadata via oembed
+    // Fallback: oembed metadata only
     const info = await axios.get(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`, { timeout: 10000 });
-    ok(res, {
-      title: info.data.title,
-      author: info.data.author_name,
-      thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
-      video_id: videoId,
-      download_url: null,
-      note: 'Direct download unavailable, use video ID with a client-side player',
-      source: 'oembed'
-    });
+    ok(res, { title: info.data.title, author: info.data.author_name, thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`, video_id: videoId, download_url: null, source: 'oembed' });
   } catch (e) {
     err(res, e.message, 500);
   }
@@ -85,54 +60,36 @@ router.get('/youtube', async (req, res) => {
 router.get('/youtube/audio', async (req, res) => {
   const { url } = req.query;
   if (!url) return err(res, 'Missing ?url=');
+  const videoId = extractVideoId(url);
+  if (!videoId) return err(res, 'Invalid YouTube URL');
   try {
-    const match = url.match(/(?:v=|youtu\.be\/|\/shorts\/|\/embed\/)([a-zA-Z0-9_-]{11})/);
-    if (!match) return err(res, 'Invalid YouTube URL');
-    const videoId = match[1];
-
-    // Try cobalt for audio
-    try {
-      const r = await axios.post('https://api.cobalt.tools/api/json', {
-        url: `https://www.youtube.com/watch?v=${videoId}`,
-        isAudioOnly: true,
-        aFormat: 'mp3'
-      }, {
-        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-        timeout: 15000
+    if (ytDlp) {
+      const d = await ytDlp(`https://www.youtube.com/watch?v=${videoId}`, {
+        dumpSingleJson: true,
+        noWarnings: true,
+        noCheckCertificates: true,
+        format: 'bestaudio'
       });
-      if (r.data?.url) {
-        const info = await axios.get(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`, { timeout: 10000 }).catch(() => null);
-        return ok(res, {
-          title: info?.data?.title || 'Unknown',
-          author: info?.data?.author_name || 'Unknown',
-          thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
-          audio_url: r.data.url,
-          source: 'cobalt'
-        });
-      }
-    } catch(e) { /* fallthrough */ }
-
-    // Invidious fallback
-    const instances = ['https://inv.nadeko.net', 'https://invidious.privacyredirect.com', 'https://vid.puffyan.us'];
-    for (const instance of instances) {
-      try {
-        const r = await axios.get(`${instance}/api/v1/videos/${videoId}`, { timeout: 10000 });
-        const audioFormats = (r.data.adaptiveFormats || []).filter(f => f.type?.includes('audio') && f.url);
-        if (audioFormats.length) {
-          return ok(res, {
-            title: r.data.title,
-            author: r.data.author,
-            thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
-            audio_url: audioFormats[0].url,
-            bitrate: audioFormats[0].bitrate,
-            source: 'invidious'
-          });
-        }
-      } catch(e) { continue; }
+      const audioFormats = (d.formats || [])
+        .filter(f => f.acodec !== 'none' && f.vcodec === 'none' && f.url)
+        .map(f => ({ ext: f.ext, abr: f.abr ? Math.round(f.abr)+'kbps' : null, url: f.url }));
+      return ok(res, {
+        title: d.title,
+        author: d.uploader,
+        duration: d.duration + 's',
+        thumbnail: d.thumbnail,
+        video_id: videoId,
+        audio_url: d.url || audioFormats.slice(-1)[0]?.url,
+        ext: d.ext,
+        bitrate: d.abr ? Math.round(d.abr) + 'kbps' : null,
+        all_audio_formats: audioFormats.slice(-4).reverse(),
+        note: 'URLs expire in ~6 hours. Re-fetch for fresh links.',
+        source: 'yt-dlp'
+      });
     }
-    err(res, 'Could not extract audio. YouTube may be blocking server IPs.', 503);
+    err(res, 'yt-dlp not available on this server', 503);
   } catch (e) {
-    err(res, e.message, 500);
+    err(res, e.message.includes('ERROR') ? e.message.split('\n').find(l=>l.includes('ERROR')) || e.message : e.message, 500);
   }
 });
 
